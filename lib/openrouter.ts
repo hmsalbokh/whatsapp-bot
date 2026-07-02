@@ -6,7 +6,7 @@ import type {
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? "";
 const MODEL =
-  process.env.OPENROUTER_MODEL ?? "meta-llama/llama-3.3-70b-versatile";
+  process.env.OPENROUTER_MODEL ?? "anthropic/claude-3.5-sonnet";
 
 export class OpenRouterError extends Error {
   constructor(
