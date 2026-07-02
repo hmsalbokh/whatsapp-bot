@@ -6,7 +6,7 @@ import type {
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? "";
 const MODEL =
-  process.env.OPENROUTER_MODEL ?? "anthropic/claude-3.5-sonnet";
+  process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
 
 export class OpenRouterError extends Error {
   constructor(
