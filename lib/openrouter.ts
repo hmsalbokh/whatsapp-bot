@@ -6,7 +6,7 @@ import type {
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? "";
 const MODEL =
-  process.env.OPENROUTER_MODEL ?? "google/gemini-2.5-flash-preview-04-17";
+  process.env.OPENROUTER_MODEL ?? "meta-llama/llama-3.3-70b-versatile";
 
 export class OpenRouterError extends Error {
   constructor(
