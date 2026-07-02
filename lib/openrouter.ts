@@ -31,7 +31,7 @@ export async function chat(
   const body: Record<string, unknown> = {
     model: MODEL,
     messages: messages.map((m) => {
-      const msg: Record<string, string> = {
+      const msg: Record<string, unknown> = {
         role: m.role,
         content: m.content,
       };
@@ -40,6 +40,9 @@ export async function chat(
       }
       if (m.name) {
         msg.name = m.name;
+      }
+      if (m.tool_calls) {
+        msg.tool_calls = m.tool_calls;
       }
       return msg;
     }),

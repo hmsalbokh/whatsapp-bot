@@ -15,6 +15,7 @@ export interface ConversationMessage {
   content: string;
   tool_call_id?: string;
   name?: string;
+  tool_calls?: OpenRouterToolCall[];
 }
 
 export interface OpenRouterToolCall {

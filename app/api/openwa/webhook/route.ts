@@ -57,7 +57,7 @@ async function processWithTools(
           ...tc,
           function: tc.function,
         })),
-      } as unknown as ConversationMessage);
+      } as ConversationMessage);
 
       for (const toolCall of message.tool_calls) {
         const args = JSON.parse(toolCall.function.arguments);
