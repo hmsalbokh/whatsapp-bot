@@ -1,97 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { addMessage, getMessages, isHandoffRequested } from "@/lib/memory";
-import { chat, OpenRouterError } from "@/lib/openrouter";
+import {
+  addMessage,
+  logWebhookEvent,
+  markWebhookProcessed,
+  markWebhookFailed,
+  isDuplicateMessage,
+  isHandoffRequested,
+} from "@/lib/memory";
+import { processWithTools } from "@/lib/agent-runtime";
 import { sendMessage, OpenWAError } from "@/lib/openwa";
-import { toolDefinitions, executeTool } from "@/lib/tools";
+import { OpenRouterError } from "@/lib/openrouter";
 import type { ConversationMessage } from "@/types";
 
 const webhookSchema = z.object({
-  from: z.string().min(1, "sender phone is required"),
-  body: z.string().min(1, "message body is required"),
+  from: z.string().min(1),
+  body: z.string().min(1),
   messageId: z.string().optional(),
   timestamp: z.number().optional(),
+  projectId: z.string().optional(),
 });
 
-interface ErrorResponse {
-  error: string;
-  detail?: string;
+function errorResponse(status: number, message: string, detail?: string) {
+  return NextResponse.json({ error: message, detail }, { status });
 }
 
-function errorResponse(
-  status: number,
-  message: string,
-  detail?: string
-): NextResponse<ErrorResponse> {
-  return NextResponse.json(
-    { error: message, detail },
-    { status }
-  );
-}
-
-async function processWithTools(
-  phone: string,
-  maxTurns = 5
-): Promise<string> {
-  const messages = getMessages(phone);
-
-  if (isHandoffRequested(phone)) {
-    return "تم تحويل محادثتك إلى فريق الدعم البشري. سيتم الرد عليك قريبًا.";
-  }
-
-  for (let turn = 0; turn < maxTurns; turn++) {
-    const response = await chat(messages, toolDefinitions);
-    const choice = response.choices[0];
-
-    if (!choice) {
-      throw new Error("No response from OpenRouter");
-    }
-
-    const { message } = choice;
-
-    if (message.tool_calls && message.tool_calls.length > 0) {
-      addMessage(phone, {
-        role: "assistant",
-        content: message.content ?? "",
-        tool_calls: message.tool_calls.map((tc) => ({
-          ...tc,
-          function: tc.function,
-        })),
-      } as ConversationMessage);
-
-      for (const toolCall of message.tool_calls) {
-        const args = JSON.parse(toolCall.function.arguments);
-        const result = executeTool(
-          toolCall.function.name,
-          args,
-          phone
-        );
-
-        addMessage(phone, {
-          role: "tool",
-          content: JSON.stringify(result),
-          tool_call_id: toolCall.id,
-          name: toolCall.function.name,
-        } as ConversationMessage);
-      }
-    } else {
-      const text = message.content ?? "";
-      addMessage(phone, {
-        role: "assistant",
-        content: text,
-      });
-      return text;
-    }
-  }
-
-  return "عذرًا، استغرق الرد وقتًا أطول من المتوقع. يرجى المحاولة مرة أخرى لاحقًا.";
-}
-
-export async function POST(
-  request: NextRequest
-): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const start = Date.now();
-  const logCtx = { method: "POST", path: "/api/openwa/webhook" };
 
   try {
     let rawBody: unknown;
@@ -103,42 +38,66 @@ export async function POST(
 
     const parsed = webhookSchema.safeParse(rawBody);
     if (!parsed.success) {
-      console.warn("[webhook] validation failed", {
-        ...logCtx,
-        errors: parsed.error.flatten(),
-      });
       return errorResponse(
         422,
         "Validation failed",
-JSON.stringify(parsed.error.flatten().fieldErrors)
+        JSON.stringify(parsed.error.flatten().fieldErrors)
       );
     }
 
-    const { from, body } = parsed.data;
-    console.info("[webhook] incoming", {
-      ...logCtx,
-      from,
-      bodyLength: body.length,
+    const { from, body, messageId, projectId } = parsed.data;
+
+    const eventId = await logWebhookEvent({
+      source: "openwa",
+      eventType: "message",
+      rawPayload: parsed.data,
+      projectId,
     });
 
-    addMessage(from, { role: "user", content: body });
-    const reply = await processWithTools(from);
+    if (!projectId) {
+      await markWebhookFailed(eventId, "No projectId provided");
+      return errorResponse(400, "projectId is required");
+    }
 
+    // Idempotency
+    if (messageId) {
+      const duplicate = await isDuplicateMessage(projectId, messageId);
+      if (duplicate) {
+        await markWebhookProcessed(eventId);
+        return NextResponse.json({
+          status: "ok",
+          duplicate: true,
+          duration: Date.now() - start,
+        });
+      }
+    }
+
+    // Persist user message
+    await addMessage(projectId, from, { role: "user", content: body }, messageId);
+
+    // Check handoff
+    if (await isHandoffRequested(projectId, from)) {
+      const reply = "تم تحويل محادثتك إلى فريق الدعم البشري. سيتم الرد عليك قريبًا.";
+      await sendMessage(from, reply).catch(() => {});
+      await markWebhookProcessed(eventId);
+      return NextResponse.json({ status: "ok", replySent: true, duration: Date.now() - start });
+    }
+
+    // Process with AI (project-specific model, prompt, knowledge)
+    const reply = await processWithTools(projectId, from);
+
+    // Send reply
     try {
       await sendMessage(from, reply);
-      console.info("[webhook] reply sent", {
-        ...logCtx,
-        from,
-        duration: Date.now() - start,
-      });
     } catch (sendErr) {
-      console.error("[webhook] send failed", {
-        ...logCtx,
-        from,
-        error: sendErr instanceof Error ? sendErr.message : String(sendErr),
-      });
+      await markWebhookFailed(
+        eventId,
+        `Send failed: ${sendErr instanceof Error ? sendErr.message : String(sendErr)}`
+      );
       return errorResponse(502, "Failed to send reply via OpenWA");
     }
+
+    await markWebhookProcessed(eventId);
 
     return NextResponse.json({
       status: "ok",
@@ -150,14 +109,8 @@ JSON.stringify(parsed.error.flatten().fieldErrors)
       err instanceof OpenRouterError
         ? `OpenRouter error: ${err.message}`
         : err instanceof Error
-        ? err.message
-        : "Unknown error";
-
-    console.error("[webhook] error", {
-      ...logCtx,
-      error: message,
-      duration: Date.now() - start,
-    });
+          ? err.message
+          : "Unknown error";
 
     return errorResponse(500, "Internal server error", message);
   }
@@ -167,9 +120,6 @@ export async function GET(): Promise<NextResponse> {
   return NextResponse.json({
     service: "WhatsApp Bot Webhook",
     status: "active",
-    endpoints: {
-      webhook: "POST /api/openwa/webhook",
-      health: "GET /api/openwa/webhook",
-    },
+    endpoints: { webhook: "POST /api/openwa/webhook", health: "GET /api/openwa/webhook" },
   });
 }

@@ -1,4 +1,4 @@
-import type { ToolDefinition, ToolHandler } from "@/types";
+import type { ToolDefinition, ToolHandler, ToolContext } from "@/types";
 import { definition as getOrderStatusDef, handler as getOrderStatusHandler } from "./get-order-status";
 import { definition as searchFaqDef, handler as searchFaqHandler } from "./search-faq";
 import { definition as createSupportTicketDef, handler as createSupportTicketHandler } from "./create-support-ticket";
@@ -18,14 +18,14 @@ const toolHandlers: Record<string, ToolHandler> = {
   handoff_to_human: handoffToHumanHandler,
 };
 
-export function executeTool(
+export async function executeTool(
   name: string,
   args: Record<string, unknown>,
-  phone?: string
+  context?: ToolContext
 ) {
   const handler = toolHandlers[name];
   if (!handler) {
     return { status: "error" as const, message: `أداة غير معروفة: ${name}` };
   }
-  return handler(args, phone);
+  return handler(args, context);
 }

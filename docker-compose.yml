@@ -1,0 +1,31 @@
+services:
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+    restart: unless-stopped
+
+  # Optional: n8n sidecar for workflow automation
+  # Uncomment and configure N8N_WEBHOOK_URL to enable
+  # n8n:
+  #   image: n8nio/n8n:latest
+  #   ports:
+  #     - "5678:5678"
+  #   environment:
+  #     - N8N_PORT=5678
+  #     - N8N_PROTOCOL=http
+  #     - N8N_HOST=localhost
+  #     - WEBHOOK_URL=http://localhost:5678/
+  #   volumes:
+  #     - n8n_data:/home/node/.n8n
+  #   restart: unless-stopped
+
+# volumes:
+#   n8n_data:

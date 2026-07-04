@@ -74,6 +74,8 @@ export async function POST(request: Request) {
   } catch (err: unknown) {
     logger.error('Webhook processing failed', {
       error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      full: JSON.stringify(err, Object.getOwnPropertyNames(err)),
     });
     return NextResponse.json(
       { error: 'Internal server error' },

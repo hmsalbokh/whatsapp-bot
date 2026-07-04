@@ -25,7 +25,7 @@ export const definition: ToolDefinition = {
   },
 };
 
-export const handler: ToolHandler = (args, phone?: string) => {
+export const handler: ToolHandler = async (args, context) => {
   const parsed = paramsSchema.safeParse(args);
   if (!parsed.success) {
     return {
@@ -34,8 +34,8 @@ export const handler: ToolHandler = (args, phone?: string) => {
     };
   }
 
-  if (phone) {
-    setHandoffRequested(phone, parsed.data.reason);
+  if (context?.phone && context?.projectId) {
+    await setHandoffRequested(context.projectId, context.phone, parsed.data.reason);
   }
 
   return {

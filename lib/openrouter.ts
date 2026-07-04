@@ -5,8 +5,6 @@ import type {
 } from "@/types";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? "";
-const MODEL =
-  process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
 
 export class OpenRouterError extends Error {
   constructor(
@@ -20,16 +18,24 @@ export class OpenRouterError extends Error {
 
 export async function chat(
   messages: ConversationMessage[],
-  tools?: ToolDefinition[]
+  tools?: ToolDefinition[],
+  options?: {
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+  }
 ): Promise<OpenRouterResponse> {
   if (!OPENROUTER_API_KEY) {
-    throw new OpenRouterError(
-      "OPENROUTER_API_KEY is not configured"
-    );
+    throw new OpenRouterError("OPENROUTER_API_KEY is not configured");
   }
 
+  const model =
+    options?.model ??
+    process.env.OPENROUTER_MODEL ??
+    "qwen/qwen-2.5-72b-instruct";
+
   const body: Record<string, unknown> = {
-    model: MODEL,
+    model,
     messages: messages.map((m) => {
       const msg: Record<string, unknown> = {
         role: m.role,
@@ -47,6 +53,13 @@ export async function chat(
       return msg;
     }),
   };
+
+  if (options?.temperature !== undefined) {
+    body.temperature = options.temperature;
+  }
+  if (options?.maxTokens !== undefined) {
+    body.max_tokens = options.maxTokens;
+  }
 
   if (tools && tools.length > 0) {
     body.tools = tools;
