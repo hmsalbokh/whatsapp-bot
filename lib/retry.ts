@@ -1,6 +1,6 @@
 import { getServiceClient } from "@/lib/supabase";
 
-const supabase = getServiceClient();
+function getSupabase() { return getServiceClient(); }
 
 export async function logFailedJob(params: {
   tenantId?: string;
@@ -10,7 +10,7 @@ export async function logFailedJob(params: {
   attempt?: number;
   maxAttempts?: number;
 }): Promise<string> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("failed_jobs")
     .insert({
       tenant_id: params.tenantId ?? null,
@@ -35,7 +35,7 @@ export async function logFailedJob(params: {
 export async function retryFailedJob(
   jobId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const { data: job } = await supabase
+  const { data: job } = await getSupabase()
     .from("failed_jobs")
     .select("*")
     .eq("id", jobId)
@@ -58,7 +58,7 @@ export async function retryFailedJob(
 
   const newAttempt = j.attempt + 1;
 
-  await supabase
+  await getSupabase()
     .from("failed_jobs")
     .update({
       attempt: newAttempt,
@@ -82,7 +82,7 @@ export async function retryFailedJob(
     }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    await supabase
+    await getSupabase()
       .from("failed_jobs")
       .update({ error: errorMsg } as never)
       .eq("id", jobId);

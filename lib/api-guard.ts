@@ -1,6 +1,6 @@
 import { getServiceClient } from "@/lib/supabase";
 
-const supabase = getServiceClient();
+function getSupabase() { return getServiceClient(); }
 
 export async function verifyProjectAccess(
   userId: string | undefined,
@@ -8,7 +8,7 @@ export async function verifyProjectAccess(
 ): Promise<{ tenantId: string } | null> {
   if (!userId) return null;
 
-  const { data: project } = await supabase
+  const { data: project } = await getSupabase()
     .from("project_profiles")
     .select("tenant_id")
     .eq("id", projectId)
@@ -18,7 +18,7 @@ export async function verifyProjectAccess(
 
   const tenantId = (project as unknown as { tenant_id: string }).tenant_id;
 
-  const { data: membership } = await supabase
+  const { data: membership } = await getSupabase()
     .from("tenant_users")
     .select("id")
     .eq("tenant_id", tenantId)

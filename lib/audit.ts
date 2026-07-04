@@ -1,6 +1,6 @@
 import { getServiceClient } from "@/lib/supabase";
 
-const supabase = getServiceClient();
+function getSupabase() { return getServiceClient(); }
 
 export interface AuditParams {
   tenantId: string;
@@ -13,7 +13,7 @@ export interface AuditParams {
 }
 
 export async function logAudit(params: AuditParams): Promise<void> {
-  const { error } = await supabase.from("audit_logs").insert({
+  const { error } = await getSupabase().from("audit_logs").insert({
     tenant_id: params.tenantId,
     user_id: params.userId ?? null,
     action: params.action,

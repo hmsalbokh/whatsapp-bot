@@ -2,7 +2,7 @@ import { getServiceClient } from "@/lib/supabase";
 import { emitN8nEvent, buildN8nEvent, isN8nConfigured } from "@/lib/sidecar/n8n";
 import type { ConversationMessage } from "@/types";
 
-const supabase = getServiceClient();
+function getSupabase() { return getServiceClient(); }
 
 const DEFAULT_SYSTEM_PROMPT =
   process.env.SYSTEM_PROMPT ||
@@ -22,7 +22,7 @@ const DEFAULT_SYSTEM_PROMPT =
 async function getProjectTenant(
   projectId: string
 ): Promise<{ tenant_id: string }> {
-  const { data } = await supabase
+  const { data } = await getSupabase()
     .from("project_profiles")
     .select("tenant_id")
     .eq("id", projectId)
@@ -37,7 +37,7 @@ async function upsertContact(
   tenantId: string,
   phone: string
 ): Promise<string> {
-  const { data: existing } = await supabase
+  const { data: existing } = await getSupabase()
     .from("contacts")
     .select("id")
     .eq("project_id", projectId)
@@ -46,7 +46,7 @@ async function upsertContact(
 
   if (existing) return (existing as unknown as { id: string }).id;
 
-  const { data: created, error } = await supabase
+  const { data: created, error } = await getSupabase()
     .from("contacts")
     .insert({
       tenant_id: tenantId,
@@ -70,7 +70,7 @@ export async function getOrCreateConversation(
   const { tenant_id } = await getProjectTenant(projectId);
   const contactId = await upsertContact(projectId, tenant_id, phone);
 
-  const { data: existing } = await supabase
+  const { data: existing } = await getSupabase()
     .from("conversations")
     .select("id, contact_id, human_handoff")
     .eq("project_id", projectId)
@@ -79,7 +79,7 @@ export async function getOrCreateConversation(
 
   if (existing) return existing as unknown as { id: string; contact_id: string; human_handoff: boolean };
 
-  const { data: created, error } = await supabase
+  const { data: created, error } = await getSupabase()
     .from("conversations")
     .insert({
       tenant_id,
@@ -108,7 +108,7 @@ export async function addMessage(
   const now = new Date().toISOString();
   const direction = message.role === "user" ? "inbound" : "outbound";
 
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("messages")
     .insert({
       tenant_id,
@@ -148,7 +148,7 @@ export async function addMessage(
     updateFields.last_outbound_at = now;
   }
 
-  await supabase
+  await getSupabase()
     .from("conversations")
     .update(updateFields as never)
     .eq("id", conv.id);
@@ -160,7 +160,7 @@ export async function getMessages(
 ): Promise<ConversationMessage[]> {
   const conv = await getOrCreateConversation(projectId, phone);
 
-  const { data: rows } = await supabase
+  const { data: rows } = await getSupabase()
     .from("messages")
     .select("*")
     .eq("conversation_id", conv.id)
@@ -208,7 +208,7 @@ export async function setHandoffRequested(
 
   const { tenant_id } = await getProjectTenant(projectId);
 
-  await supabase
+  await getSupabase()
     .from("conversations")
     .update({
       human_handoff: true,
@@ -217,7 +217,7 @@ export async function setHandoffRequested(
     } as never)
     .eq("id", conv.id);
 
-  const { data: req, error } = await supabase
+  const { data: req, error } = await getSupabase()
     .from("handoff_requests")
     .insert({
       tenant_id,
@@ -270,7 +270,7 @@ export async function clearMemory(
   const { tenant_id } = await getProjectTenant(projectId);
   const contactId = await upsertContact(projectId, tenant_id, phone);
 
-  const { data: conv } = await supabase
+  const { data: conv } = await getSupabase()
     .from("conversations")
     .select("id")
     .eq("project_id", projectId)
@@ -278,11 +278,11 @@ export async function clearMemory(
     .single();
 
   if (conv) {
-    await supabase
+    await getSupabase()
       .from("messages")
       .delete()
       .eq("conversation_id", (conv as unknown as { id: string }).id);
-    await supabase
+    await getSupabase()
       .from("conversations")
       .delete()
       .eq("id", (conv as unknown as { id: string }).id);
@@ -300,7 +300,7 @@ export async function logWebhookEvent(params: {
   projectId?: string;
   sessionId?: string;
 }): Promise<string> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("webhook_events")
     .insert({
       source: params.source,
@@ -324,7 +324,7 @@ export async function logWebhookEvent(params: {
 
 export async function markWebhookProcessed(eventId: string): Promise<void> {
   if (!eventId) return;
-  await supabase
+  await getSupabase()
     .from("webhook_events")
     .update({ status: "processed", processed_at: new Date().toISOString() } as never)
     .eq("id", eventId);
@@ -335,7 +335,7 @@ export async function markWebhookFailed(
   error: string
 ): Promise<void> {
   if (!eventId) return;
-  await supabase
+  await getSupabase()
     .from("webhook_events")
     .update({ status: "failed", error } as never)
     .eq("id", eventId);
@@ -347,7 +347,7 @@ export async function isDuplicateMessage(
 ): Promise<boolean> {
   if (!externalMessageId) return false;
 
-  const { data } = await supabase
+  const { data } = await getSupabase()
     .from("messages")
     .select("id")
     .eq("external_message_id", externalMessageId)
