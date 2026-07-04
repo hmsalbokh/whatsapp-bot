@@ -4,7 +4,7 @@ import { getServiceClient } from "@/lib/supabase";
 import { requireProjectAccess } from "@/lib/api-guard";
 import { ok, err } from "@/lib/api-utils";
 
-const supabase = getServiceClient();
+function getSupabase() { return getServiceClient(); }
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       await requireProjectAccess(user.id, projectId);
     }
 
-    let query = supabase
+    let query = getSupabase()
       .from("failed_jobs")
       .select("id, job_type, error, attempt, max_attempts, created_at, last_attempt_at")
       .order("created_at", { ascending: false })
@@ -34,9 +34,8 @@ export async function GET(request: NextRequest) {
       query = query.eq("job_type", jobType);
     }
 
-    // Scope to user's tenants if no project filter
     if (!projectId) {
-      const { data: memberships } = await supabase
+      const { data: memberships } = await getSupabase()
         .from("tenant_users")
         .select("tenant_id")
         .eq("user_id", user.id);

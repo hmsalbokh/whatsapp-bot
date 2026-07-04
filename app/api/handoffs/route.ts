@@ -5,7 +5,7 @@ import { requireProjectAccess } from "@/lib/api-guard";
 import { ok, err } from "@/lib/api-utils";
 import { logAudit } from "@/lib/audit";
 
-const supabase = getServiceClient();
+function getSupabase() { return getServiceClient(); }
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       await requireProjectAccess(user.id, projectId);
     }
 
-    let query = supabase
+    let query = getSupabase()
       .from("handoff_requests")
       .select("*, conversations!inner(project_id, contact_id)")
       .eq("status", status)
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       query = query.eq("conversations.project_id", projectId);
     } else {
       // Scope to user's tenants
-      const { data: memberships } = await supabase
+      const { data: memberships } = await getSupabase()
         .from("tenant_users")
         .select("tenant_id")
         .eq("user_id", user.id);
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       await requireProjectAccess(user.id, projectId);
     }
 
-    const { data: conv } = await supabase
+    const { data: conv } = await getSupabase()
       .from("conversations")
       .select("id, tenant_id, project_id")
       .eq("id", conversationId)
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     // Verify caller belongs to this conversation's tenant
     await requireProjectAccess(user.id, c.project_id);
 
-    const { data: req, error } = await supabase
+    const { data: req, error } = await getSupabase()
       .from("handoff_requests")
       .insert({
         tenant_id: c.tenant_id,
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     if (error) return err("Failed to create handoff request", 500);
 
-    await supabase
+    await getSupabase()
       .from("conversations")
       .update({ human_handoff: true, status: "handoff" } as never)
       .eq("id", conversationId);

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getServiceClient } from "@/lib/supabase";
 import { ok, err } from "@/lib/api-utils";
 
-const supabase = getServiceClient();
+function getSupabase() { return getServiceClient(); }
 
 export async function POST(
   _request: NextRequest,
@@ -15,7 +15,7 @@ export async function POST(
     const { data: { user } } = await s.auth.getUser();
     if (!user) return err("Unauthorized", 401);
 
-    const { data: event } = await supabase
+    const { data: event } = await getSupabase()
       .from("webhook_events")
       .select("id, raw_payload, project_id, tenant_id")
       .eq("id", id)
@@ -31,7 +31,7 @@ export async function POST(
 
     // Verify tenant access
     if (ev.tenant_id) {
-      const { data: membership } = await supabase
+      const { data: membership } = await getSupabase()
         .from("tenant_users")
         .select("id")
         .eq("tenant_id", ev.tenant_id)
@@ -63,7 +63,7 @@ export async function POST(
 
     const result = await res.json();
 
-    await supabase
+    await getSupabase()
       .from("webhook_events")
       .update({ status: "replayed", processed_at: new Date().toISOString() } as never)
       .eq("id", id);

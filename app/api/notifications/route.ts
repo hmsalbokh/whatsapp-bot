@@ -5,7 +5,7 @@ import { getServiceClient } from "@/lib/supabase";
 import { requireProjectAccess } from "@/lib/api-guard";
 import { ok, err, parseJson } from "@/lib/api-utils";
 
-const supabase = getServiceClient();
+function getSupabase() { return getServiceClient(); }
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       await requireProjectAccess(user.id, projectId);
     }
 
-    let query = supabase
+    let query = getSupabase()
       .from("webhook_events")
       .select("id, source, event_type, status, error, created_at, project_id")
       .order("created_at", { ascending: false })
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     if (projectId) {
       query = query.eq("project_id", projectId);
     } else {
-      const { data: memberships } = await supabase
+      const { data: memberships } = await getSupabase()
         .from("tenant_users")
         .select("tenant_id")
         .eq("user_id", user.id);
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     const { tenantId } = await requireProjectAccess(user.id, projectId);
 
-    const { data: notif, error } = await supabase
+    const { data: notif, error } = await getSupabase()
       .from("webhook_events")
       .insert({
         tenant_id: tenantId,

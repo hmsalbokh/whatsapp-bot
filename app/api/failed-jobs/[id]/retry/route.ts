@@ -4,7 +4,7 @@ import { getServiceClient } from "@/lib/supabase";
 import { ok, err } from "@/lib/api-utils";
 import { retryFailedJob } from "@/lib/retry";
 
-const supabase = getServiceClient();
+function getSupabase() { return getServiceClient(); }
 
 export async function POST(
   _request: NextRequest,
@@ -17,7 +17,7 @@ export async function POST(
     if (!user) return err("Unauthorized", 401);
 
     // Verify caller has access to this job via tenant
-    const { data: job } = await supabase
+    const { data: job } = await getSupabase()
       .from("failed_jobs")
       .select("tenant_id")
       .eq("id", id)
@@ -28,7 +28,7 @@ export async function POST(
     const j = job as unknown as { tenant_id: string | null };
 
     if (j.tenant_id) {
-      const { data: membership } = await supabase
+      const { data: membership } = await getSupabase()
         .from("tenant_users")
         .select("id")
         .eq("tenant_id", j.tenant_id)

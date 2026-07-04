@@ -5,7 +5,7 @@ import { requireProjectAccess } from "@/lib/api-guard";
 import { ok, err, parseJson } from "@/lib/api-utils";
 import { logAudit } from "@/lib/audit";
 
-const supabase = getServiceClient();
+function getSupabase() { return getServiceClient(); }
 
 export async function PATCH(
   request: NextRequest,
@@ -26,7 +26,7 @@ export async function PATCH(
       return err("status must be one of: accepted, rejected, closed", 400);
     }
 
-    const { data: handoffReq } = await supabase
+    const { data: handoffReq } = await getSupabase()
       .from("handoff_requests")
       .select("id, conversation_id, tenant_id")
       .eq("id", id)
@@ -41,7 +41,7 @@ export async function PATCH(
     };
 
     // Verify caller belongs to this handoff's tenant
-    const { data: membership } = await supabase
+    const { data: membership } = await getSupabase()
       .from("tenant_users")
       .select("id")
       .eq("tenant_id", h.tenant_id)
@@ -55,18 +55,18 @@ export async function PATCH(
       updateData.resolved_at = new Date().toISOString();
     }
 
-    await supabase
+    await getSupabase()
       .from("handoff_requests")
       .update(updateData as never)
       .eq("id", id);
 
     if (newStatus === "accepted") {
-      await supabase
+      await getSupabase()
         .from("conversations")
         .update({ assigned_agent: user.email ?? "agent", status: "handoff" } as never)
         .eq("id", h.conversation_id);
     } else if (newStatus === "closed" || newStatus === "rejected") {
-      await supabase
+      await getSupabase()
         .from("conversations")
         .update({ human_handoff: false, status: "active" } as never)
         .eq("id", h.conversation_id);
