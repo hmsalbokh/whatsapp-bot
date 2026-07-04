@@ -5,3 +5,4 @@ node_modules/
 site.env
 *.tsbuildinfo
 next-env.d.ts
+/openwa-whatsapp-ai-agent/
