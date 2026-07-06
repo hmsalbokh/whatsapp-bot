@@ -8,6 +8,10 @@ export class OpenWAError extends Error {
   }
 }
 
+function getSessionName(): string {
+  return process.env.OPENWA_SESSION || "bot-session2";
+}
+
 export async function sendMessage(
   to: string,
   text: string
@@ -19,22 +23,23 @@ export async function sendMessage(
     throw new OpenWAError("OpenWA is not configured");
   }
 
-  const res = await fetch(`${baseUrl}/api/send`, {
+  const sessionName = getSessionName();
+  const res = await fetch(`${baseUrl}/api/sessions/${sessionName}/messages/send-text`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      "X-API-Key": token,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       to,
-      text,
+      body: text,
     }),
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "unknown error");
+    const errText = await res.text().catch(() => "unknown error");
     throw new OpenWAError(
-      `OpenWA API error (${res.status}): ${text}`,
+      `OpenWA API error (${res.status}): ${errText}`,
       res.status
     );
   }
