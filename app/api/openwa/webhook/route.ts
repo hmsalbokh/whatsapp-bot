@@ -19,6 +19,14 @@ const webhookSchema = z.object({
   messageId: z.string().optional(),
   timestamp: z.number().optional(),
   projectId: z.string().optional(),
+  event: z.string().optional(),
+  sessionId: z.string().optional(),
+  data: z.object({
+    id: z.string().optional(),
+    from: z.string().optional(),
+    body: z.string().optional(),
+    timestamp: z.number().optional(),
+  }).optional(),
 });
 
 function errorResponse(status: number, message: string, detail?: string) {
@@ -36,7 +44,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return errorResponse(400, "Invalid JSON body");
     }
 
-    const parsed = webhookSchema.safeParse(rawBody);
+    // Allow projectId from query param (OpenWA cannot send it in body)
+    const queryProjectId = request.nextUrl.searchParams.get("projectId") || undefined;
+
+    // Normalize OpenWA payload (wraps data in { event, sessionId, data: {...} })
+    let normalizedBody = rawBody;
+    if (typeof rawBody === "object" && rawBody !== null && "data" in rawBody) {
+      const { data, ...rest } = rawBody as Record<string, unknown>;
+      const nested = typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {};
+      normalizedBody = {
+        ...rest,
+        from: nested.from || rest.from,
+        body: nested.body || rest.body,
+        messageId: nested.id || rest.messageId,
+        timestamp: nested.timestamp || rest.timestamp,
+        projectId: queryProjectId || rest.projectId,
+      };
+    } else if (typeof rawBody === "object" && rawBody !== null) {
+      (normalizedBody as Record<string, unknown>).projectId = queryProjectId || (rawBody as Record<string, unknown>).projectId;
+    }
+
+    const parsed = webhookSchema.safeParse(normalizedBody);
     if (!parsed.success) {
       return errorResponse(
         422,
@@ -56,7 +84,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!projectId) {
       await markWebhookFailed(eventId, "No projectId provided");
-      return errorResponse(400, "projectId is required");
+      return errorResponse(400, "projectId is required - add ?projectId=YOUR_PROJECT_ID to webhook URL");
     }
 
     // Idempotency
