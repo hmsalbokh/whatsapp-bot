@@ -8,29 +8,6 @@ export class OpenWAError extends Error {
   }
 }
 
-let _sessionId: string | null = null;
-
-async function getSessionId(): Promise<string> {
-  if (_sessionId) return _sessionId;
-
-  const baseUrl = process.env.OPENWA_BASE_URL;
-  const token = process.env.OPENWA_API_TOKEN;
-  const sessionName = process.env.OPENWA_SESSION || "bot-session2";
-
-  const res = await fetch(`${baseUrl}/api/sessions`, {
-    headers: { "X-API-Key": token ?? "" },
-  });
-  if (res.ok) {
-    const sessions: { id: string; name: string }[] = await res.json();
-    const found = sessions.find((s) => s.name === sessionName);
-    if (found) {
-      _sessionId = found.id;
-      return found.id;
-    }
-  }
-  return sessionName;
-}
-
 export async function sendMessage(
   to: string,
   text: string
@@ -42,7 +19,7 @@ export async function sendMessage(
     throw new OpenWAError("OpenWA is not configured");
   }
 
-  const sessionId = await getSessionId();
+  const sessionId = process.env.OPENWA_SESSION_ID || "131eae3c-5842-4492-bb3c-7bdface3edd3";
   const res = await fetch(`${baseUrl}/api/sessions/${sessionId}/messages/send-text`, {
     method: "POST",
     headers: {
