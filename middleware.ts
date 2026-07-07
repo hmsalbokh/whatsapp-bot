@@ -21,6 +21,7 @@ export async function middleware(request: NextRequest) {
 
   // Protected non-API pages → redirect to login if no session
   const isPublic =
+    pathname === "/pricing" ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api") ||
     pathname.startsWith("/_next");

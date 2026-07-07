@@ -18,6 +18,12 @@ export default function Header({
           <Link href="/projects/new" className="text-gray-600 hover:text-gray-900">
             + مشروع جديد
           </Link>
+          <Link href="/dashboard/subscription" className="text-gray-600 hover:text-gray-900">
+            الاشتراك
+          </Link>
+          <Link href="/pricing" className="text-gray-600 hover:text-gray-900">
+            الخطط
+          </Link>
         </nav>
       </div>
       <div className="flex items-center gap-3">
