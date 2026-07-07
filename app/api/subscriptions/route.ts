@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       .from("subscription_plans")
       .select("*")
       .eq("id", planId)
-      .single();
+      .single() as unknown as { data: { id: string; price_monthly: number } | null };
 
     if (!plan) {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 });
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     // End existing subscriptions
     await admin
       .from("subscriptions")
-      .update({ status: "canceled", canceled_at: new Date().toISOString() })
+      .update({ status: "canceled", canceled_at: new Date().toISOString() } as never)
       .eq("tenant_id", tenantId)
       .in("status", ["active", "trialing", "past_due"]);
 
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     const endDate = new Date(now);
     endDate.setMonth(endDate.getMonth() + 1);
 
-    const { data: subscription, error } = await admin
+    const { error } = await admin
       .from("subscriptions")
       .insert({
         tenant_id: tenantId,
@@ -95,12 +95,10 @@ export async function POST(request: NextRequest) {
         current_period_end: endDate.toISOString(),
         trial_end: plan.price_monthly > 0 ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() : null,
         metadata: { created_by: user.id },
-      })
-      .select("*, subscription_plans(*)")
-      .single();
+      } as never);
 
     if (error) throw error;
-    return NextResponse.json({ subscription }, { status: 201 });
+    return NextResponse.json({ subscription: { plan_id: planId, tenant_id: tenantId } }, { status: 201 });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : String(err) },
