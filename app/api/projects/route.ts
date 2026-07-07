@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceClient } from "@/lib/supabase";
+import { checkUserProjectLimit } from "@/lib/subscription-guard";
 
 export async function GET() {
   const supabase = await createClient();
@@ -57,6 +58,15 @@ export async function POST(request: Request) {
   }
 
   const admin = getServiceClient();
+
+  // Check subscription project limit
+  const limitCheck = await checkUserProjectLimit(user.id);
+  if (!limitCheck.allowed) {
+    return NextResponse.json(
+      { error: limitCheck.message || "Subscription limit reached" },
+      { status: 403 }
+    );
+  }
 
   const slug = tenantName
     .toLowerCase()
