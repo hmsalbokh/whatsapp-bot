@@ -102,5 +102,40 @@ export async function POST(request: Request) {
     );
   }
 
+  // Auto-create agent settings
+  await admin.from("agent_settings").insert({
+    tenant_id: createdTenant.id,
+    project_id: (project as unknown as { id: string }).id,
+  } as never).catch(() => {});
+
+  // Auto-create free subscription if none exists
+  const { data: existingSub } = await admin
+    .from("subscriptions")
+    .select("id")
+    .eq("tenant_id", createdTenant.id)
+    .maybeSingle();
+
+  if (!existingSub) {
+    const { data: freePlan } = await admin
+      .from("subscription_plans")
+      .select("id")
+      .eq("slug", "free")
+      .single();
+
+    if (freePlan) {
+      const now = new Date();
+      const end = new Date(now);
+      end.setFullYear(end.getFullYear() + 10); // free plan never expires
+      await admin.from("subscriptions").insert({
+        tenant_id: createdTenant.id,
+        plan_id: (freePlan as unknown as { id: string }).id,
+        status: "active",
+        current_period_start: now.toISOString(),
+        current_period_end: end.toISOString(),
+        metadata: { created_by: "system" },
+      } as never).catch(() => {});
+    }
+  }
+
   return NextResponse.json({ project, tenant }, { status: 201 });
 }

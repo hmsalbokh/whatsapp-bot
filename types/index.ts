@@ -281,4 +281,36 @@ export interface DbFailedJob {
   created_at: string;
 }
 
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  price_monthly: number;
+  price_yearly: number;
+  features: string[];
+  limits: {
+    projects: number;
+    contacts: number;
+    messages_per_month: number;
+    teams: number;
+  };
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface Subscription {
+  id: string;
+  tenant_id: string;
+  plan_id: string;
+  status: "active" | "past_due" | "canceled" | "expired" | "trialing";
+  current_period_start: string;
+  current_period_end: string;
+  trial_end: string | null;
+  canceled_at: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
 
