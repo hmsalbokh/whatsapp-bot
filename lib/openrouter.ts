@@ -41,8 +41,8 @@ export async function chat(
         role: m.role,
         content: m.content,
       };
-      if (m.role === "tool" && m.tool_call_id) {
-        msg.tool_call_id = m.tool_call_id;
+      if (m.role === "tool") {
+        msg.tool_call_id = m.tool_call_id ?? "";
       }
       if (m.name) {
         msg.name = m.name;
