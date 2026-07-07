@@ -31,8 +31,8 @@ export async function sendMessage(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      to,
-      body: text,
+      chatId: to,
+      text: text,
     }),
   });
 
