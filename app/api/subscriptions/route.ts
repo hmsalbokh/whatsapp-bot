@@ -12,7 +12,7 @@ export async function GET() {
     const { data: memberships } = await admin
       .from("tenant_users")
       .select("tenant_id")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id) as unknown as { data: { tenant_id: string }[] | null };
 
     if (!memberships || memberships.length === 0) {
       return NextResponse.json({ subscription: null });
@@ -26,7 +26,7 @@ export async function GET() {
       .in("status", ["active", "trialing", "past_due"])
       .order("current_period_end", { ascending: false })
       .limit(1)
-      .maybeSingle();
+      .maybeSingle() as unknown as { data: Record<string, unknown> | null };
 
     return NextResponse.json({ subscription: data ?? null });
   } catch (err) {
