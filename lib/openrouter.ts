@@ -42,9 +42,9 @@ export async function chat(
         content: m.content,
       };
       if (m.role === "tool") {
-        msg.tool_call_id = m.tool_call_id ?? "";
-      }
-      if (m.name) {
+        msg.tool_call_id = m.tool_call_id || "call_unknown";
+        msg.name = m.name || "unknown_tool";
+      } else if (m.name) {
         msg.name = m.name;
       }
       if (m.tool_calls) {
