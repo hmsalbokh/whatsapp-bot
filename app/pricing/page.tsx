@@ -51,7 +51,7 @@ export default function PricingPage() {
             دخول
           </Link>
           <Link
-            href="/auth/signup"
+            href="/register"
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700"
           >
             بدء التجربة

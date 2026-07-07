@@ -74,6 +74,17 @@ export default function ProjectPage() {
         </Link>
 
         <Link
+          href={`/projects/${id}/whatsapp`}
+          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-blue-200"
+        >
+          <p className="text-3xl mb-2">📱</p>
+          <p className="font-semibold text-gray-800 mb-1">ربط واتساب</p>
+          <p className="text-xs text-gray-500">
+            ربط رقم الجوال وتفعيل الجلسة
+          </p>
+        </Link>
+
+        <Link
           href={`/projects/${id}/handoffs`}
           className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-blue-200"
         >

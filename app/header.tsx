@@ -2,8 +2,10 @@ import Link from "next/link";
 
 export default function Header({
   user,
+  isAdmin = false,
 }: {
   user: { email: string; id: string };
+  isAdmin?: boolean;
 }) {
   return (
     <header className="flex items-center justify-between border-b bg-white px-4 py-2 shadow-sm">
@@ -12,7 +14,7 @@ export default function Header({
           <span className="text-lg font-bold text-gray-800">🤖 WhatsApp Bot</span>
         </Link>
         <nav className="flex items-center gap-4 text-sm">
-          <Link href="/" className="text-gray-600 hover:text-gray-900">
+          <Link href="/projects" className="text-gray-600 hover:text-gray-900">
             المشاريع
           </Link>
           <Link href="/projects/new" className="text-gray-600 hover:text-gray-900">
@@ -24,6 +26,11 @@ export default function Header({
           <Link href="/pricing" className="text-gray-600 hover:text-gray-900">
             الخطط
           </Link>
+          {isAdmin && (
+            <Link href="/admin" className="text-blue-600 hover:text-blue-800 font-medium">
+              ⚙️ لوحة التحكم
+            </Link>
+          )}
         </nav>
       </div>
       <div className="flex items-center gap-3">

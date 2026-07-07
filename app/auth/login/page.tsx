@@ -101,7 +101,7 @@ export default function LoginPage() {
 
           <p className="mt-4 text-center text-xs text-gray-400">
             ليس لديك حساب؟{" "}
-            <a href="/auth/signup" className="text-blue-600 hover:underline">
+            <a href="/register" className="text-blue-600 hover:underline">
               إنشاء حساب
             </a>
           </p>

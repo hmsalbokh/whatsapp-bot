@@ -12,8 +12,8 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = !!getAuthCookie(request);
 
-  // Auth pages → redirect to / if already logged in
-  if (hasSession && pathname.startsWith("/auth") && pathname !== "/auth/callback") {
+  // Auth pages → redirect to / if already logged in (except signout and callback)
+  if (hasSession && pathname.startsWith("/auth") && pathname !== "/auth/callback" && pathname !== "/auth/signout") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
@@ -21,6 +21,7 @@ export async function middleware(request: NextRequest) {
 
   // Protected non-API pages → redirect to login if no session
   const isPublic =
+    pathname === "/" ||
     pathname === "/pricing" ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api") ||
