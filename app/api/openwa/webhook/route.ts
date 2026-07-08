@@ -9,7 +9,7 @@ import {
   isHandoffRequested,
 } from "@/lib/memory";
 import { processWithTools } from "@/lib/agent-runtime";
-import { sendMessage, OpenWAError } from "@/lib/openwa";
+import { sendMessage } from "@/lib/openwa";
 import { OpenRouterError } from "@/lib/openrouter";
 import { checkMessageLimit } from "@/lib/subscription-guard";
 import type { ConversationMessage } from "@/types";
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Check handoff
     if (await isHandoffRequested(projectId, from)) {
       const reply = "تم تحويل محادثتك إلى فريق الدعم البشري. سيتم الرد عليك قريبًا.";
-      await sendMessage(from, reply).catch(() => {});
+      await sendMessage(from, reply, projectId).catch(() => {});
       await markWebhookProcessed(eventId);
       return NextResponse.json({ status: "ok", replySent: true, duration: Date.now() - start });
     }
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const msgLimit = await checkMessageLimit(projectId);
     if (!msgLimit.allowed) {
       const reply = "عذرًا، تم تجاوز الحد المسموح من الرسائل لهذا الشهر. يرجى ترقية خطتك للمتابعة.";
-      await sendMessage(from, reply).catch(() => {});
+      await sendMessage(from, reply, projectId).catch(() => {});
       await markWebhookProcessed(eventId);
       return NextResponse.json({ status: "ok", replySent: true, blocked: true, duration: Date.now() - start });
     }
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Send reply
     try {
-      await sendMessage(from, reply);
+      await sendMessage(from, reply, projectId);
     } catch (sendErr) {
       await markWebhookFailed(
         eventId,
