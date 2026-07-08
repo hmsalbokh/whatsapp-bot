@@ -7,9 +7,13 @@ export interface EnvValidation {
 const REQUIRED_VARS = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-  "SUPABASE_SERVICE_KEY",
   "OPENROUTER_API_KEY",
   "NEXT_PUBLIC_SITE_URL",
+] as const;
+
+const SERVICE_KEY_VARS = [
+  "SUPABASE_SERVICE_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
 ] as const;
 
 const OPTIONAL_VARS = [
@@ -27,6 +31,11 @@ export function validateEnv(): EnvValidation {
     if (!process.env[key]) {
       missing.push(key);
     }
+  }
+
+  const hasServiceKey = SERVICE_KEY_VARS.some((k) => !!process.env[k]);
+  if (!hasServiceKey) {
+    missing.push("SUPABASE_SERVICE_KEY");
   }
 
   if (!process.env.OPENWA_BASE_URL || !process.env.OPENWA_API_TOKEN) {
