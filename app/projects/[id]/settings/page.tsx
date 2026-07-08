@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  Smartphone, CheckCircle2, XCircle, Loader2, Save, Plus,
+  RefreshCw, Scan, Wifi
+} from "lucide-react";
 
 interface Project {
   id: string;
@@ -20,10 +25,24 @@ interface AgentSettings {
   system_prompt: string | null;
 }
 
+interface WhatsAppSession {
+  id: string;
+  provider: string;
+  phone_number_id: string | null;
+  config: Record<string, unknown>;
+  is_active: boolean;
+  updated_at: string;
+}
+
+type ConnectionStatus = "idle" | "creating" | "waiting_qr" | "connecting" | "connected" | "error";
+
 export default function SettingsPage() {
   const { id } = useParams<{ id: string }>();
+  const qrPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingWA, setSavingWA] = useState(false);
   const [message, setMessage] = useState("");
 
   const [form, setForm] = useState({
@@ -42,11 +61,25 @@ export default function SettingsPage() {
     system_prompt: "",
   });
 
+  const [session, setSession] = useState<WhatsAppSession | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("idle");
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrError, setQrError] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [waError, setWaError] = useState("");
+
+  const [waForm, setWaForm] = useState({
+    baseUrl: "",
+    apiToken: "",
+    sessionName: "",
+  });
+
   useEffect(() => {
     Promise.all([
       fetch(`/api/projects/${id}`).then((r) => r.json()),
       fetch(`/api/projects/${id}/agent-settings`).then((r) => r.json()),
-    ]).then(([projectData, agentData]) => {
+      fetch(`/api/projects/${id}/whatsapp-session`).then((r) => r.json()),
+    ]).then(([projectData, agentData, sessionData]) => {
       if (projectData.project) {
         const p = projectData.project;
         setForm({
@@ -67,8 +100,31 @@ export default function SettingsPage() {
           system_prompt: s.system_prompt ?? "",
         });
       }
+      const s = sessionData.session;
+      setSession(s);
+      if (s?.config) {
+        const cfg = s.config as Record<string, string>;
+        setWaForm({
+          baseUrl: cfg.baseUrl ?? "",
+          apiToken: cfg.apiToken ?? "",
+          sessionName: cfg.sessionName ?? "",
+        });
+        if (s.phone_number_id) setPhoneNumber(s.phone_number_id);
+        if (s.is_active && cfg.sessionName) setConnectionStatus("connected");
+      }
     }).finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    return () => {
+      if (qrPollRef.current) clearInterval(qrPollRef.current);
+    };
+  }, []);
+
+  function updateWAField(field: string, value: string) {
+    setWaForm((prev) => ({ ...prev, [field]: value }));
+    setWaError("");
+  }
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -98,6 +154,138 @@ export default function SettingsPage() {
 
     setMessage(res.ok ? "✅ تم حفظ إعدادات الوكيل" : "❌ حدث خطأ");
     setSaving(false);
+  }
+
+  async function handleSaveWA() {
+    setSavingWA(true);
+    try {
+      const res = await fetch(`/api/projects/${id}/whatsapp-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "openwa",
+          phoneNumberId: phoneNumber || null,
+          config: {
+            baseUrl: waForm.baseUrl,
+            apiToken: waForm.apiToken,
+            sessionName: waForm.sessionName,
+          },
+          isActive: connectionStatus === "connected",
+        }),
+      });
+      const data = await res.json();
+      if (data.saved) {
+        setMessage("✅ تم حفظ إعدادات واتساب");
+        setSession(data.session);
+      }
+    } catch {
+      setWaError("فشل الحفظ");
+    }
+    setSavingWA(false);
+  }
+
+  async function handleCreateSession() {
+    if (!waForm.baseUrl || !waForm.apiToken || !waForm.sessionName) {
+      setWaError("يرجى تعبئة جميع الحقول");
+      return;
+    }
+    setWaError("");
+    setQrError("");
+    setQrCode(null);
+    setConnectionStatus("creating");
+    setPhoneNumber("");
+
+    try {
+      const res = await fetch(`/api/projects/${id}/whatsapp-session/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(waForm),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setWaError(data.error || "فشل إنشاء الجلسة");
+        setConnectionStatus("idle");
+        return;
+      }
+      if (data.qr) {
+        setQrCode(data.qr);
+        setConnectionStatus("waiting_qr");
+        startQrPolling();
+      } else {
+        setConnectionStatus("connecting");
+        startQrPolling();
+      }
+    } catch {
+      setWaError("فشل الاتصال بخادم OpenWA");
+      setConnectionStatus("idle");
+    }
+  }
+
+  function startQrPolling() {
+    if (qrPollRef.current) clearInterval(qrPollRef.current);
+    qrPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/projects/${id}/whatsapp-session/check`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(waForm),
+        });
+        const data = await res.json();
+        if (!data.success) return;
+
+        if (data.status === "connected" || data.status === "active") {
+          setConnectionStatus("connected");
+          if (data.phone) setPhoneNumber(data.phone);
+          if (qrPollRef.current) clearInterval(qrPollRef.current);
+          handleSaveWA();
+          return;
+        }
+
+        if (data.status === "connecting" || data.status === "scanning" || data.status === "waiting_for_scan") {
+          setConnectionStatus("waiting_qr");
+          fetchQRCode();
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 3000);
+  }
+
+  async function fetchQRCode() {
+    try {
+      const res = await fetch(`/api/projects/${id}/whatsapp-session/qr`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(waForm),
+      });
+      const data = await res.json();
+      if (data.qr) setQrCode(data.qr);
+    } catch {
+      setQrError("تعذر الحصول على QR code");
+    }
+  }
+
+  async function handleDisconnect() {
+    if (qrPollRef.current) clearInterval(qrPollRef.current);
+    setConnectionStatus("idle");
+    setQrCode(null);
+    setPhoneNumber("");
+    await fetch(`/api/projects/${id}/whatsapp-session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: "openwa",
+        config: waForm,
+        isActive: false,
+      }),
+    }).catch(() => {});
+    setMessage("✅ تم قطع اتصال واتساب");
+  }
+
+  async function handleRefreshQR() {
+    setQrError("");
+    setQrCode(null);
+    await fetchQRCode();
   }
 
   if (loading) {
@@ -210,6 +398,166 @@ export default function SettingsPage() {
             حفظ إعدادات الوكيل
           </button>
         </form>
+      </section>
+
+      <hr className="border-gray-200" />
+
+      {/* WhatsApp Connection */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">📱 اتصال واتساب</h2>
+
+        {/* Connection status banner */}
+        <AnimatePresence>
+          {connectionStatus !== "idle" && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={`rounded-2xl border p-5 mb-6 ${
+                connectionStatus === "connected"
+                  ? "bg-green-50 border-green-200"
+                  : connectionStatus === "error"
+                  ? "bg-red-50 border-red-200"
+                  : "bg-blue-50 border-blue-200"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {connectionStatus === "connected" ? (
+                  <Wifi className="w-6 h-6 text-green-600" />
+                ) : connectionStatus === "creating" ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                ) : connectionStatus === "waiting_qr" ? (
+                  <Scan className="w-6 h-6 text-blue-600" />
+                ) : connectionStatus === "connecting" ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                ) : (
+                  <XCircle className="w-6 h-6 text-red-500" />
+                )}
+                <div className="flex-1">
+                  <p className={`font-semibold ${
+                    connectionStatus === "connected" ? "text-green-800" : "text-blue-800"
+                  }`}>
+                    {connectionStatus === "connected" && "✅ الجلسة متصلة"}
+                    {connectionStatus === "creating" && "جاري إنشاء الجلسة..."}
+                    {connectionStatus === "waiting_qr" && "امسح QR code بهاتفك"}
+                    {connectionStatus === "connecting" && "جاري الاتصال..."}
+                    {connectionStatus === "error" && "خطأ في الاتصال"}
+                  </p>
+                  {phoneNumber && (
+                    <p className="text-sm text-green-600 mt-0.5" dir="ltr">
+                      {phoneNumber}
+                    </p>
+                  )}
+                </div>
+                {connectionStatus === "connected" && (
+                  <button onClick={handleDisconnect}
+                    className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors">
+                    قطع الاتصال
+                  </button>
+                )}
+              </div>
+
+              {/* QR Code display */}
+              {(connectionStatus === "waiting_qr" || connectionStatus === "connecting") && (
+                <div className="mt-5 flex flex-col items-center">
+                  {qrCode ? (
+                    <div className="relative">
+                      <img src={qrCode} alt="QR Code"
+                        className="w-56 h-56 rounded-2xl bg-white border-2 border-blue-200 shadow-lg" />
+                      <div className="absolute inset-0 rounded-2xl ring-2 ring-blue-400/50 animate-pulse pointer-events-none" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center w-56 h-56 rounded-2xl bg-white border-2 border-blue-200">
+                      <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+                    </div>
+                  )}
+                  <p className="text-xs text-blue-600 mt-3 text-center max-w-xs">
+                    افتح واتساب على هاتفك ← الإعدادات ← الأجهزة المرتبطة ← ربط جهاز ← امسح QR code
+                  </p>
+                  <button onClick={handleRefreshQR}
+                    className="mt-3 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors">
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    تحديث QR code
+                  </button>
+                  {qrError && <p className="text-xs text-red-500 mt-2">{qrError}</p>}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* OpenWA form */}
+        <div className="space-y-4 rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <Smartphone className="w-5 h-5 text-slate-500" />
+            <h3 className="font-semibold text-[#0a1b33]">إعدادات OpenWA</h3>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">رابط خادم OpenWA</label>
+            <input type="url" dir="ltr" value={waForm.baseUrl}
+              onChange={(e) => updateWAField("baseUrl", e.target.value)}
+              className="block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-[#0a152d] transition-all"
+              placeholder="https://your-openwa.onrender.com" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">رمز API (API Token)</label>
+            <input type="text" dir="ltr" value={waForm.apiToken}
+              onChange={(e) => updateWAField("apiToken", e.target.value)}
+              className="block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-[#0a152d] transition-all font-mono"
+              placeholder="owa_k1_..." />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">اسم الجلسة</label>
+            <input type="text" dir="ltr" value={waForm.sessionName}
+              onChange={(e) => updateWAField("sessionName", e.target.value)}
+              className="block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-[#0a152d] transition-all font-mono"
+              placeholder="my-bot" />
+          </div>
+
+          {waError && (
+            <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+              {waError}
+            </div>
+          )}
+
+          {session && connectionStatus === "connected" && (
+            <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-green-700 font-medium">✅ متصل</span>
+                <span className="text-green-600 text-xs">{session.updated_at ? new Date(session.updated_at).toLocaleDateString("ar-SA") : ""}</span>
+              </div>
+              {phoneNumber && <p className="text-green-600 font-mono" dir="ltr">{phoneNumber}</p>}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            <button onClick={handleCreateSession}
+              disabled={connectionStatus === "creating" || connectionStatus === "waiting_qr" || connectionStatus === "connecting"}
+              className="flex items-center gap-2 rounded-xl bg-[#0a152d] text-white px-6 py-2.5 text-sm font-semibold hover:bg-[#0a1b33] transition-all shadow-sm disabled:opacity-50">
+              {(connectionStatus === "creating" || connectionStatus === "connecting") ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              {connectionStatus === "waiting_qr" ? "انتظار المسح..." : "إنشاء جلسة جديدة"}
+            </button>
+
+            <button onClick={handleSaveWA} disabled={savingWA}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50">
+              {savingWA ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              حفظ الإعدادات
+            </button>
+
+            {(connectionStatus === "waiting_qr" || connectionStatus === "connecting") && (
+              <button onClick={handleRefreshQR}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-all">
+                <RefreshCw className="w-4 h-4" />
+                تحديث QR
+              </button>
+            )}
+          </div>
+        </div>
       </section>
 
       {message && (
