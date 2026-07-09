@@ -11,7 +11,6 @@ import {
 import { processWithTools } from "@/lib/agent-runtime";
 import { sendMessage } from "@/lib/openwa";
 import { OpenRouterError } from "@/lib/openrouter";
-import { checkMessageLimit } from "@/lib/subscription-guard";
 import type { ConversationMessage } from "@/types";
 
 const webhookSchema = z.object({
@@ -117,21 +116,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
       await markWebhookProcessed(eventId);
       return NextResponse.json({ status: "ok", replySent: true, duration: Date.now() - start });
-    }
-
-    // Check message limit
-    const msgLimit = await checkMessageLimit(projectId);
-    console.log("[webhook] checkMessageLimit result:", JSON.stringify(msgLimit));
-    if (!msgLimit.allowed) {
-      const reply = "عذرًا، تم تجاوز الحد المسموح من الرسائل لهذا الشهر. يرجى ترقية خطتك للمتابعة.";
-      console.log("[webhook] message limit exceeded, sending reply to", from);
-      try {
-        await sendMessage(from, reply, projectId);
-      } catch (e) {
-        console.error("[webhook] sendMessage (limit) failed:", e instanceof Error ? e.message : String(e));
-      }
-      await markWebhookProcessed(eventId);
-      return NextResponse.json({ status: "ok", replySent: true, blocked: true, duration: Date.now() - start });
     }
 
     // Process with AI (project-specific model, prompt, knowledge)
