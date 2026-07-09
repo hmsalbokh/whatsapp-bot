@@ -45,10 +45,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return errorResponse(400, "Invalid JSON body");
     }
 
-    // Allow projectId from query param (OpenWA cannot send it in body)
     const queryProjectId = request.nextUrl.searchParams.get("projectId") || undefined;
+    console.log("[webhook] raw body:", JSON.stringify(rawBody).slice(0, 500));
+    console.log("[webhook] query projectId:", queryProjectId);
 
-    // Normalize OpenWA payload (wraps data in { event, sessionId, data: {...} })
     let normalizedBody = rawBody;
     if (typeof rawBody === "object" && rawBody !== null && "data" in rawBody) {
       const { data, ...rest } = rawBody as Record<string, unknown>;
@@ -64,6 +64,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     } else if (typeof rawBody === "object" && rawBody !== null) {
       (normalizedBody as Record<string, unknown>).projectId = queryProjectId || (rawBody as Record<string, unknown>).projectId;
     }
+
+    console.log("[webhook] normalized body:", JSON.stringify(normalizedBody).slice(0, 500));
 
     const parsed = webhookSchema.safeParse(normalizedBody);
     if (!parsed.success) {
@@ -107,16 +109,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Check handoff
     if (await isHandoffRequested(projectId, from)) {
       const reply = "تم تحويل محادثتك إلى فريق الدعم البشري. سيتم الرد عليك قريبًا.";
-      await sendMessage(from, reply, projectId).catch(() => {});
+      console.log("[webhook] handoff requested, sending reply to", from);
+      try {
+        await sendMessage(from, reply, projectId);
+      } catch (e) {
+        console.error("[webhook] sendMessage (handoff) failed:", e instanceof Error ? e.message : String(e));
+      }
       await markWebhookProcessed(eventId);
       return NextResponse.json({ status: "ok", replySent: true, duration: Date.now() - start });
     }
 
     // Check message limit
     const msgLimit = await checkMessageLimit(projectId);
+    console.log("[webhook] checkMessageLimit result:", JSON.stringify(msgLimit));
     if (!msgLimit.allowed) {
       const reply = "عذرًا، تم تجاوز الحد المسموح من الرسائل لهذا الشهر. يرجى ترقية خطتك للمتابعة.";
-      await sendMessage(from, reply, projectId).catch(() => {});
+      console.log("[webhook] message limit exceeded, sending reply to", from);
+      try {
+        await sendMessage(from, reply, projectId);
+      } catch (e) {
+        console.error("[webhook] sendMessage (limit) failed:", e instanceof Error ? e.message : String(e));
+      }
       await markWebhookProcessed(eventId);
       return NextResponse.json({ status: "ok", replySent: true, blocked: true, duration: Date.now() - start });
     }
