@@ -18,7 +18,7 @@ export async function createOpenWASession(
   const res = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      "X-API-Key": token,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ name: sessionName }),
@@ -45,7 +45,7 @@ export async function getOpenWAQR(
 
   const res = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      "X-API-Key": token,
     },
   });
 
@@ -80,7 +80,7 @@ export async function getOpenWASessionStatus(
 
   const res = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      "X-API-Key": token,
     },
   });
 
@@ -111,7 +111,7 @@ export async function deleteOpenWASession(
   const res = await fetch(url, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${token}`,
+      "X-API-Key": token,
     },
   });
 
