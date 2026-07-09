@@ -387,7 +387,6 @@ export async function generateAndSaveSummary(
     })
     .join("\n");
 
-  const { default: fetch } = await import("node-fetch");
   const { OPENROUTER_API_KEY } = process.env;
 
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
