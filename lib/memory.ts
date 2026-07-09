@@ -63,29 +63,21 @@ async function upsertContact(
   return (created as unknown as { id: string }).id;
 }
 
-export interface ConversationMeta {
-  id: string;
-  contact_id: string;
-  human_handoff: boolean;
-  summary: string | null;
-  summary_generated_at: string | null;
-}
-
 export async function getOrCreateConversation(
   projectId: string,
   phone: string
-): Promise<ConversationMeta> {
+): Promise<{ id: string; contact_id: string; human_handoff: boolean }> {
   const { tenant_id } = await getProjectTenant(projectId);
   const contactId = await upsertContact(projectId, tenant_id, phone);
 
   const { data: existing } = await getSupabase()
     .from("conversations")
-    .select("id, contact_id, human_handoff, summary, summary_generated_at")
+    .select("id, contact_id, human_handoff")
     .eq("project_id", projectId)
     .eq("contact_id", contactId)
     .single();
 
-  if (existing) return existing as unknown as ConversationMeta;
+  if (existing) return existing as unknown as { id: string; contact_id: string; human_handoff: boolean };
 
   const { data: created, error } = await getSupabase()
     .from("conversations")
@@ -94,14 +86,14 @@ export async function getOrCreateConversation(
       project_id: projectId,
       contact_id: contactId,
     } as never)
-    .select("id, contact_id, human_handoff, summary, summary_generated_at")
+    .select("id, contact_id, human_handoff")
     .single();
 
   if (error || !created) {
     throw new Error(`Failed to create conversation: ${error?.message}`);
   }
 
-  return created as unknown as ConversationMeta;
+  return created as unknown as { id: string; contact_id: string; human_handoff: boolean };
 }
 
 const SUMMARY_INTERVAL = 20;
@@ -163,20 +155,27 @@ export async function addMessage(
     .update(updateFields as never)
     .eq("id", conv.id);
 
-  const shouldSummarize = direction === "outbound"
-    && (!conv.summary_generated_at
-      || (Date.now() - new Date(conv.summary_generated_at).getTime()) > 60000);
+  if (direction === "outbound") {
+    const { data: sumRow } = await getSupabase()
+      .from("conversations")
+      .select("summary_generated_at")
+      .eq("id", conv.id)
+      .single();
+    const s = sumRow as unknown as { summary_generated_at: string | null } | null;
+    const shouldSummarize = !s?.summary_generated_at
+      || (Date.now() - new Date(s.summary_generated_at).getTime()) > 60000;
 
-  if (shouldSummarize) {
-    const { count } = await getSupabase()
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("conversation_id", conv.id);
+    if (shouldSummarize) {
+      const { count } = await getSupabase()
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", conv.id);
 
-    if (count && count % SUMMARY_INTERVAL === 0) {
-      generateAndSaveSummary(projectId, phone).catch((err) =>
-        console.error("[memory] background summarization failed", err)
-      );
+      if (count && count % SUMMARY_INTERVAL === 0) {
+        generateAndSaveSummary(projectId, phone).catch((err) =>
+          console.error("[memory] background summarization failed", err)
+        );
+      }
     }
   }
 }
@@ -225,17 +224,24 @@ export async function getMessages(
 
   const result: ConversationMessage[] = [systemMessage];
 
-  if (conv.summary) {
-    const daysSinceSummary = conv.summary_generated_at
-      ? (Date.now() - new Date(conv.summary_generated_at).getTime()) / 86400000
-      : 0;
-
-    if (daysSinceSummary <= 1) {
-      result.push({
-        role: "system",
-        content: `[ملخص المحادثة السابقة: ${conv.summary}]`,
-      });
+  try {
+    const { data: sumRow } = await getSupabase()
+      .from("conversations")
+      .select("summary, summary_generated_at")
+      .eq("id", conv.id)
+      .single();
+    const s = sumRow as unknown as { summary: string | null; summary_generated_at: string | null } | null;
+    if (s?.summary && s.summary_generated_at) {
+      const daysSinceSummary = (Date.now() - new Date(s.summary_generated_at).getTime()) / 86400000;
+      if (daysSinceSummary <= 1) {
+        result.push({
+          role: "system",
+          content: `[ملخص المحادثة السابقة: ${s.summary}]`,
+        });
+      }
     }
+  } catch {
+    // summary columns may not exist yet — skip
   }
 
   result.push(...conversationMessages);
@@ -356,7 +362,23 @@ export async function getSummary(
   phone: string
 ): Promise<{ summary: string | null; summary_generated_at: string | null }> {
   const conv = await getOrCreateConversation(projectId, phone);
-  return { summary: conv.summary, summary_generated_at: conv.summary_generated_at };
+  const { data } = await getSupabase()
+    .from("conversations")
+    .select("summary, summary_generated_at")
+    .eq("id", conv.id)
+    .single();
+  const row = data as unknown as { summary: string | null; summary_generated_at: string | null } | null;
+  return { summary: row?.summary ?? null, summary_generated_at: row?.summary_generated_at ?? null };
+}
+
+async function getConversationSummary(conversationId: string): Promise<string | null> {
+  const { data } = await getSupabase()
+    .from("conversations")
+    .select("summary")
+    .eq("id", conversationId)
+    .single();
+  const row = data as unknown as { summary: string | null } | null;
+  return row?.summary ?? null;
 }
 
 export async function generateAndSaveSummary(
@@ -416,7 +438,7 @@ export async function generateAndSaveSummary(
 
   if (!res.ok) {
     console.error("[memory] summarization API error", res.status);
-    return conv.summary ?? "";
+    return (await getConversationSummary(conv.id)) ?? "";
   }
 
   const json = (await res.json()) as {
@@ -428,7 +450,7 @@ export async function generateAndSaveSummary(
     await saveSummary(conv.id, summary);
   }
 
-  return summary || conv.summary || "";
+  return summary || (await getConversationSummary(conv.id)) || "";
 }
 
 // ---- Webhook persistence ----
