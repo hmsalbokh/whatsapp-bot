@@ -11,11 +11,10 @@ import {
 import { processWithTools } from "@/lib/agent-runtime";
 import { sendMessage } from "@/lib/openwa";
 import { OpenRouterError } from "@/lib/openrouter";
-import type { ConversationMessage } from "@/types";
 
 const webhookSchema = z.object({
-  from: z.string().min(1),
-  body: z.string().min(1),
+  from: z.string().min(1).optional(),
+  body: z.string().min(1).optional(),
   messageId: z.string().optional(),
   timestamp: z.number().optional(),
   projectId: z.string().optional(),
@@ -49,33 +48,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log("[webhook] query projectId:", queryProjectId);
 
     let normalizedBody = rawBody;
-    if (typeof rawBody === "object" && rawBody !== null && "data" in rawBody) {
-      const { data, ...rest } = rawBody as Record<string, unknown>;
-      const nested = typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {};
-      normalizedBody = {
-        ...rest,
-        from: nested.from || rest.from,
-        body: nested.body || rest.body,
-        messageId: nested.id || rest.messageId,
-        timestamp: nested.timestamp || rest.timestamp,
-        projectId: queryProjectId || rest.projectId,
-      };
-    } else if (typeof rawBody === "object" && rawBody !== null) {
-      (normalizedBody as Record<string, unknown>).projectId = queryProjectId || (rawBody as Record<string, unknown>).projectId;
+    if (typeof rawBody === "object" && rawBody !== null && !Array.isArray(rawBody)) {
+      const r = rawBody as Record<string, unknown>;
+      if ("data" in r) {
+        const { data, ...rest } = r;
+        const nested = typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {};
+        normalizedBody = {
+          ...rest,
+          from: nested.from || rest.from,
+          body: nested.body || rest.body,
+          messageId: nested.id || rest.messageId,
+          timestamp: nested.timestamp || rest.timestamp,
+          projectId: queryProjectId || rest.projectId,
+        };
+      } else {
+        normalizedBody = {
+          ...r,
+          projectId: queryProjectId || r.projectId,
+        };
+      }
     }
 
     console.log("[webhook] normalized body:", JSON.stringify(normalizedBody).slice(0, 500));
 
     const parsed = webhookSchema.safeParse(normalizedBody);
     if (!parsed.success) {
-      return errorResponse(
-        422,
-        "Validation failed",
-        JSON.stringify(parsed.error.flatten().fieldErrors)
-      );
+      const errDetail = JSON.stringify(parsed.error.flatten().fieldErrors);
+      console.log("[webhook] validation error:", errDetail);
+      return errorResponse(422, "Validation failed", errDetail);
     }
 
     const { from, body, messageId, projectId } = parsed.data;
+
+    if (!from || !body) {
+      console.log("[webhook] test/verification request (no from/body), returning ok");
+      return NextResponse.json({ status: "ok", test: true, duration: Date.now() - start });
+    }
 
     const eventId = await logWebhookEvent({
       source: "openwa",
