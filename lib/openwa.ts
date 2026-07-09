@@ -13,7 +13,6 @@ async function getSessionConfig(projectId?: string): Promise<{
   token: string;
   sessionId: string;
 }> {
-  // If projectId is provided, look up the session from DB
   if (projectId) {
     try {
       const { getServiceClient } = await import("@/lib/supabase");
@@ -26,12 +25,15 @@ async function getSessionConfig(projectId?: string): Promise<{
 
       if (data) {
         const session = data as unknown as { config: Record<string, string>; is_active: boolean };
-        if (session.is_active && session.config?.sessionName) {
-          return {
-            baseUrl: session.config.baseUrl,
-            token: session.config.apiToken,
-            sessionId: session.config.sessionName,
-          };
+        if (session.is_active && session.config) {
+          const sid = session.config.sessionId || session.config.sessionName;
+          if (sid && session.config.baseUrl && session.config.apiToken) {
+            return {
+              baseUrl: session.config.baseUrl,
+              token: session.config.apiToken,
+              sessionId: sid,
+            };
+          }
         }
       }
     } catch {
@@ -39,7 +41,6 @@ async function getSessionConfig(projectId?: string): Promise<{
     }
   }
 
-  // Fallback to env vars
   const baseUrl = process.env.OPENWA_BASE_URL;
   const token = process.env.OPENWA_API_TOKEN;
   const sessionId = process.env.OPENWA_SESSION_ID || "131eae3c-5842-4492-bb3c-7bdface3edd3";
@@ -51,14 +52,43 @@ async function getSessionConfig(projectId?: string): Promise<{
   return { baseUrl, token, sessionId };
 }
 
+async function resolveSessionId(
+  baseUrl: string,
+  token: string,
+  sessionNameOrId: string
+): Promise<string> {
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidPattern.test(sessionNameOrId)) return sessionNameOrId;
+
+  const directRes = await fetch(`${baseUrl}/api/sessions/${encodeURIComponent(sessionNameOrId)}`, {
+    headers: { "X-API-Key": token },
+  });
+  if (directRes.ok) {
+    const data = await directRes.json();
+    return data.id ?? data.sessionId ?? sessionNameOrId;
+  }
+
+  const listRes = await fetch(`${baseUrl}/api/sessions`, {
+    headers: { "X-API-Key": token },
+  });
+  if (listRes.ok) {
+    const list = await listRes.json() as Array<{ id: string; name: string }>;
+    const found = list.find((s) => s.name === sessionNameOrId);
+    if (found) return found.id;
+  }
+
+  return sessionNameOrId;
+}
+
 export async function sendMessage(
   to: string,
   text: string,
   projectId?: string
 ): Promise<void> {
   const { baseUrl, token, sessionId } = await getSessionConfig(projectId);
+  const sid = await resolveSessionId(baseUrl, token, sessionId);
 
-  const res = await fetch(`${baseUrl}/api/sessions/${sessionId}/messages/send-text`, {
+  const res = await fetch(`${baseUrl}/api/sessions/${sid}/messages/send-text`, {
     method: "POST",
     headers: {
       "X-API-Key": token,

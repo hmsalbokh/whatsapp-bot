@@ -25,7 +25,7 @@ export async function POST(
       );
     }
 
-    const result = await createOpenWASession(baseUrl, apiToken, sessionName);
+    const result = await createOpenWASession(baseUrl, apiToken, sessionName, projectId);
 
     return NextResponse.json({
       success: true,
