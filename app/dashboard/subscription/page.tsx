@@ -62,7 +62,8 @@ export default function SubscriptionPage() {
       setSub(subData.subscription ?? null);
       setPlans(plansData.plans ?? []);
       setUsage(usageData);
-    }).finally(() => setLoading(false));
+    }).catch((err) => console.error("Failed to load subscription data:", err instanceof Error ? err.message : String(err)))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {

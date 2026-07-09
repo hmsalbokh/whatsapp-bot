@@ -76,7 +76,7 @@ export default function AdminDashboard() {
       .then((data) => {
         setStats(data.stats);
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
   }, []);
 

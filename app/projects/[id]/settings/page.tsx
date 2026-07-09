@@ -112,7 +112,8 @@ export default function SettingsPage() {
         if (s.phone_number_id) setPhoneNumber(s.phone_number_id);
         if (s.is_active && cfg.sessionName) setConnectionStatus("connected");
       }
-    }).finally(() => setLoading(false));
+    }).catch((err) => console.error("Failed to load settings:", err instanceof Error ? err.message : String(err)))
+      .finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {

@@ -110,6 +110,8 @@ create table conversations (
     last_inbound_at timestamptz,
     last_outbound_at timestamptz,
     bot_paused_until timestamptz,
+    summary text,
+    summary_generated_at timestamptz,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );

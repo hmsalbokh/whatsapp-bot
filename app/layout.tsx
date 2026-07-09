@@ -30,9 +30,13 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: { id: string; email: string } | null = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user as { id: string; email: string } | null;
+  } catch {
+    user = null;
+  }
 
   let isAdmin = false;
   if (user) {

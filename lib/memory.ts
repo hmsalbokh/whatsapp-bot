@@ -63,21 +63,29 @@ async function upsertContact(
   return (created as unknown as { id: string }).id;
 }
 
+export interface ConversationMeta {
+  id: string;
+  contact_id: string;
+  human_handoff: boolean;
+  summary: string | null;
+  summary_generated_at: string | null;
+}
+
 export async function getOrCreateConversation(
   projectId: string,
   phone: string
-): Promise<{ id: string; contact_id: string; human_handoff: boolean }> {
+): Promise<ConversationMeta> {
   const { tenant_id } = await getProjectTenant(projectId);
   const contactId = await upsertContact(projectId, tenant_id, phone);
 
   const { data: existing } = await getSupabase()
     .from("conversations")
-    .select("id, contact_id, human_handoff")
+    .select("id, contact_id, human_handoff, summary, summary_generated_at")
     .eq("project_id", projectId)
     .eq("contact_id", contactId)
     .single();
 
-  if (existing) return existing as unknown as { id: string; contact_id: string; human_handoff: boolean };
+  if (existing) return existing as unknown as ConversationMeta;
 
   const { data: created, error } = await getSupabase()
     .from("conversations")
@@ -86,15 +94,17 @@ export async function getOrCreateConversation(
       project_id: projectId,
       contact_id: contactId,
     } as never)
-    .select("id, contact_id, human_handoff")
+    .select("id, contact_id, human_handoff, summary, summary_generated_at")
     .single();
 
   if (error || !created) {
     throw new Error(`Failed to create conversation: ${error?.message}`);
   }
 
-  return created as unknown as { id: string; contact_id: string; human_handoff: boolean };
+  return created as unknown as ConversationMeta;
 }
+
+const SUMMARY_INTERVAL = 20;
 
 export async function addMessage(
   projectId: string,
@@ -152,6 +162,23 @@ export async function addMessage(
     .from("conversations")
     .update(updateFields as never)
     .eq("id", conv.id);
+
+  const shouldSummarize = direction === "outbound"
+    && (!conv.summary_generated_at
+      || (Date.now() - new Date(conv.summary_generated_at).getTime()) > 60000);
+
+  if (shouldSummarize) {
+    const { count } = await getSupabase()
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conv.id);
+
+    if (count && count % SUMMARY_INTERVAL === 0) {
+      generateAndSaveSummary(projectId, phone).catch((err) =>
+        console.error("[memory] background summarization failed", err)
+      );
+    }
+  }
 }
 
 export async function getMessages(
@@ -196,7 +223,23 @@ export async function getMessages(
     return msg;
   });
 
-  return [systemMessage, ...conversationMessages];
+  const result: ConversationMessage[] = [systemMessage];
+
+  if (conv.summary) {
+    const daysSinceSummary = conv.summary_generated_at
+      ? (Date.now() - new Date(conv.summary_generated_at).getTime()) / 86400000
+      : 0;
+
+    if (daysSinceSummary <= 1) {
+      result.push({
+        role: "system",
+        content: `[ملخص المحادثة السابقة: ${conv.summary}]`,
+      });
+    }
+  }
+
+  result.push(...conversationMessages);
+  return result;
 }
 
 export async function setHandoffRequested(
@@ -248,6 +291,10 @@ export async function setHandoffRequested(
     ).catch(() => {});
   }
 
+  generateAndSaveSummary(projectId, phone).catch((err) =>
+    console.error("[memory] handoff summarization failed", err)
+  );
+
   return reqId;
 }
 
@@ -287,6 +334,102 @@ export async function clearMemory(
       .delete()
       .eq("id", (conv as unknown as { id: string }).id);
   }
+}
+
+// ---- Conversation Summarization ----
+
+export async function saveSummary(
+  conversationId: string,
+  summary: string
+): Promise<void> {
+  await getSupabase()
+    .from("conversations")
+    .update({
+      summary,
+      summary_generated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", conversationId);
+}
+
+export async function getSummary(
+  projectId: string,
+  phone: string
+): Promise<{ summary: string | null; summary_generated_at: string | null }> {
+  const conv = await getOrCreateConversation(projectId, phone);
+  return { summary: conv.summary, summary_generated_at: conv.summary_generated_at };
+}
+
+export async function generateAndSaveSummary(
+  projectId: string,
+  phone: string
+): Promise<string> {
+  const conv = await getOrCreateConversation(projectId, phone);
+
+  const { data: rows } = await getSupabase()
+    .from("messages")
+    .select("role, content, created_at")
+    .eq("conversation_id", conv.id)
+    .order("created_at", { ascending: true });
+
+  const allMessages = (rows ?? []) as unknown as {
+    role: string;
+    content: string;
+    created_at: string;
+  }[];
+
+  if (allMessages.length === 0) return "";
+
+  const text = allMessages
+    .filter((m) => m.role !== "system" && m.role !== "tool")
+    .map((m) => {
+      const label = m.role === "user" ? "العميل" : "المساعد";
+      return `${label}: ${m.content}`;
+    })
+    .join("\n");
+
+  const { default: fetch } = await import("node-fetch");
+  const { OPENROUTER_API_KEY } = process.env;
+
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "qwen/qwen-2.5-72b-instruct",
+      messages: [
+        {
+          role: "system",
+          content: `لخص المحادثة التالية بين عميل ومساعد خدمة عملاء باللغة العربية.
+الملخص يجب أن يكون:
+- موجزاً (جملة إلى جملتين)
+- يذكر الموضوع الرئيسي والطلب أو المشكلة
+- يذكر أي إجراء تم اتخاذه (مثل تحويل لبشر، فتح تذكرة، إلخ)
+- لا يذكر تفاصيل تحية أو وداع`,
+        },
+        { role: "user", content: text },
+      ],
+      max_tokens: 300,
+      temperature: 0.3,
+    }),
+  });
+
+  if (!res.ok) {
+    console.error("[memory] summarization API error", res.status);
+    return conv.summary ?? "";
+  }
+
+  const json = (await res.json()) as {
+    choices: { message: { content: string } }[];
+  };
+  const summary = json.choices?.[0]?.message?.content?.trim() ?? "";
+
+  if (summary) {
+    await saveSummary(conv.id, summary);
+  }
+
+  return summary || conv.summary || "";
 }
 
 // ---- Webhook persistence ----

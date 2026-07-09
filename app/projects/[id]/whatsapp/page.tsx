@@ -72,6 +72,7 @@ export default function WhatsAppPage() {
           if (s.is_active && cfg.sessionName) setConnectionStatus("connected");
         }
       })
+      .catch((err) => console.error("Failed to load WhatsApp page:", err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
   }, [projectId]);
 

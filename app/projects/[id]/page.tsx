@@ -29,7 +29,7 @@ export default function ProjectPage() {
         }
         setProject(data.project);
       })
-      .catch(console.error)
+      .catch((err) => console.error("Failed to load project:", err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
   }, [id, router]);
 

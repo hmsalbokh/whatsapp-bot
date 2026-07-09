@@ -198,6 +198,8 @@ export interface DbConversationV2 {
   last_inbound_at: string | null;
   last_outbound_at: string | null;
   bot_paused_until: string | null;
+  summary: string | null;
+  summary_generated_at: string | null;
   created_at: string;
   updated_at: string;
 }
