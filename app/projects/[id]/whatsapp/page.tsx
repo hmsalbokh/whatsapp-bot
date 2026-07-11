@@ -43,6 +43,7 @@ export default function WhatsAppPage() {
   const [saved, setSaved] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [error, setError] = useState("");
+  const [isAdmin, setIsAdmin] = useState(true);
 
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("idle");
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -68,6 +69,8 @@ export default function WhatsAppPage() {
         setSession(s);
         if (s?.config) {
           const cfg = s.config as Record<string, string>;
+          const hasAdminConfig = "apiToken" in cfg && "baseUrl" in cfg;
+          setIsAdmin(hasAdminConfig);
           setForm({
             baseUrl: cfg.baseUrl ?? "",
             apiToken: cfg.apiToken ?? "",
@@ -490,43 +493,47 @@ export default function WhatsAppPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              {showAdvanced ? "إخفاء" : "إظهار"} الإعدادات المتقدمة
-            </button>
-
-            {showAdvanced && (
+            {isAdmin && (
               <>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    رابط خادم OpenWA
-                  </label>
-                  <input
-                    type="url"
-                    dir="ltr"
-                    value={form.baseUrl}
-                    onChange={(e) => updateField("baseUrl", e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all"
-                    placeholder="https://your-openwa.onrender.com"
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showAdvanced ? "إخفاء" : "إظهار"} الإعدادات المتقدمة
+                </button>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    رمز API (API Token)
-                  </label>
-                  <input
-                    type="text"
-                    dir="ltr"
-                    value={form.apiToken}
-                    onChange={(e) => updateField("apiToken", e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all font-mono"
-                    placeholder="owa_k1_..."
-                  />
-                </div>
+                {showAdvanced && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        رابط خادم OpenWA
+                      </label>
+                      <input
+                        type="url"
+                        dir="ltr"
+                        value={form.baseUrl}
+                        onChange={(e) => updateField("baseUrl", e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all"
+                        placeholder="https://your-openwa.onrender.com"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        رمز API (API Token)
+                      </label>
+                      <input
+                        type="text"
+                        dir="ltr"
+                        value={form.apiToken}
+                        onChange={(e) => updateField("apiToken", e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all font-mono"
+                        placeholder="owa_k1_..."
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -640,32 +647,34 @@ export default function WhatsAppPage() {
           </motion.div>
         )}
 
-        {/* Webhook info */}
-        <div className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <ExternalLink className="w-5 h-5 text-slate-400" />
-            <h2 className="font-semibold text-brand-navy-text">رابط Webhook</h2>
+        {/* Webhook info — visible only to admins */}
+        {isAdmin && (
+          <div className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <ExternalLink className="w-5 h-5 text-slate-400" />
+              <h2 className="font-semibold text-brand-navy-text">رابط Webhook</h2>
+            </div>
+            <p className="text-xs text-slate-500 mb-2">
+              استخدم هذا الرابط في إعدادات OpenWA (Settings → Webhook URL):
+            </p>
+            <code
+              className="block rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-xs font-mono text-slate-600 break-all select-all"
+              dir="ltr"
+            >
+              {typeof window !== "undefined"
+                ? `${window.location.origin}/api/openwa/webhook?projectId=${projectId}`
+                : ""}
+            </code>
+            {form.baseUrl && form.apiToken && form.sessionName && (
+              <WebhookUpdater
+                projectId={projectId}
+                baseUrl={form.baseUrl}
+                apiToken={form.apiToken}
+                sessionName={form.sessionName}
+              />
+            )}
           </div>
-          <p className="text-xs text-slate-500 mb-2">
-            استخدم هذا الرابط في إعدادات OpenWA (Settings → Webhook URL):
-          </p>
-          <code
-            className="block rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-xs font-mono text-slate-600 break-all select-all"
-            dir="ltr"
-          >
-            {typeof window !== "undefined"
-              ? `${window.location.origin}/api/openwa/webhook?projectId=${projectId}`
-              : ""}
-          </code>
-          {form.baseUrl && form.apiToken && form.sessionName && (
-            <WebhookUpdater
-              projectId={projectId}
-              baseUrl={form.baseUrl}
-              apiToken={form.apiToken}
-              sessionName={form.sessionName}
-            />
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

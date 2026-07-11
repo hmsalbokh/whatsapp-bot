@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import { createClient } from "@/lib/supabase/server";
-import { requireProjectAccess } from "@/lib/api-guard";
+import { requireProjectAccess, requireAdminAccess } from "@/lib/api-guard";
 
 export async function GET(
   _request: Request,
@@ -13,7 +13,7 @@ export async function GET(
     const { data: { user } } = await s.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await requireProjectAccess(user.id, projectId);
+    const access = await requireProjectAccess(user.id, projectId);
     const admin = getServiceClient();
 
     const { data: session } = await admin
@@ -21,6 +21,18 @@ export async function GET(
       .select("*")
       .eq("project_id", projectId)
       .maybeSingle();
+
+    if (session && access.role !== "admin") {
+      const raw = session as unknown as { config: Record<string, unknown> };
+      return NextResponse.json({
+        session: {
+          ...raw,
+          config: {
+            sessionName: typeof raw.config?.sessionName === "string" ? raw.config.sessionName : "",
+          },
+        },
+      });
+    }
 
     return NextResponse.json({ session: session ?? null });
   } catch (err) {
@@ -40,7 +52,7 @@ export async function POST(
     const { data: { user } } = await s.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const access = await requireProjectAccess(user.id, projectId);
+    const access = await requireAdminAccess(user.id, projectId);
 
     const body = await request.json();
     const { provider, phoneNumberId, webhookSecret, config, isActive } = body;

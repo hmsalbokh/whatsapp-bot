@@ -67,6 +67,7 @@ export default function SettingsPage() {
   const [qrError, setQrError] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [waError, setWaError] = useState("");
+  const [isAdmin, setIsAdmin] = useState(true);
 
   const [waForm, setWaForm] = useState({
     baseUrl: "",
@@ -104,6 +105,8 @@ export default function SettingsPage() {
       setSession(s);
       if (s?.config) {
         const cfg = s.config as Record<string, string>;
+        const hasAdminConfig = "apiToken" in cfg && "baseUrl" in cfg;
+        setIsAdmin(hasAdminConfig);
         setWaForm({
           baseUrl: cfg.baseUrl ?? "",
           apiToken: cfg.apiToken ?? "",
@@ -494,27 +497,37 @@ export default function SettingsPage() {
             <h3 className="font-semibold text-brand-navy-text">إعدادات OpenWA</h3>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">رابط خادم OpenWA</label>
-            <input type="url" dir="ltr" value={waForm.baseUrl}
-              onChange={(e) => updateWAField("baseUrl", e.target.value)}
-              className="block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all"
-              placeholder="https://your-openwa.onrender.com" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">رمز API (API Token)</label>
-            <input type="text" dir="ltr" value={waForm.apiToken}
-              onChange={(e) => updateWAField("apiToken", e.target.value)}
-              className="block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all font-mono"
-              placeholder="owa_k1_..." />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">اسم الجلسة</label>
-            <input type="text" dir="ltr" value={waForm.sessionName}
-              onChange={(e) => updateWAField("sessionName", e.target.value)}
-              className="block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all font-mono"
-              placeholder="my-bot" />
-          </div>
+          {isAdmin ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">رابط خادم OpenWA</label>
+                <input type="url" dir="ltr" value={waForm.baseUrl}
+                  onChange={(e) => updateWAField("baseUrl", e.target.value)}
+                  className="block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all"
+                  placeholder="https://your-openwa.onrender.com" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">رمز API (API Token)</label>
+                <input type="text" dir="ltr" value={waForm.apiToken}
+                  onChange={(e) => updateWAField("apiToken", e.target.value)}
+                  className="block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all font-mono"
+                  placeholder="owa_k1_..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">اسم الجلسة</label>
+                <input type="text" dir="ltr" value={waForm.sessionName}
+                  onChange={(e) => updateWAField("sessionName", e.target.value)}
+                  className="block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all font-mono"
+                  placeholder="my-bot" />
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">اسم الجلسة</label>
+              <input type="text" dir="ltr" value={waForm.sessionName} readOnly
+                className="block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none font-mono bg-slate-50 text-slate-500 cursor-not-allowed" />
+            </div>
+          )}
 
           {waError && (
             <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
@@ -532,32 +545,34 @@ export default function SettingsPage() {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-3">
-            <button onClick={handleCreateSession}
-              disabled={connectionStatus === "creating" || connectionStatus === "waiting_qr" || connectionStatus === "connecting"}
-              className="flex items-center gap-2 rounded-xl bg-brand-navy text-white px-6 py-2.5 text-sm font-semibold hover:bg-brand-navy-text transition-all shadow-sm disabled:opacity-50">
-              {(connectionStatus === "creating" || connectionStatus === "connecting") ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4" />
-              )}
-              {connectionStatus === "waiting_qr" ? "انتظار المسح..." : "إنشاء جلسة جديدة"}
-            </button>
-
-            <button onClick={handleSaveWA} disabled={savingWA}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50">
-              {savingWA ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              حفظ الإعدادات
-            </button>
-
-            {(connectionStatus === "waiting_qr" || connectionStatus === "connecting") && (
-              <button onClick={handleRefreshQR}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-all">
-                <RefreshCw className="w-4 h-4" />
-                تحديث QR
+          {isAdmin && (
+            <div className="flex flex-wrap gap-3">
+              <button onClick={handleCreateSession}
+                disabled={connectionStatus === "creating" || connectionStatus === "waiting_qr" || connectionStatus === "connecting"}
+                className="flex items-center gap-2 rounded-xl bg-brand-navy text-white px-6 py-2.5 text-sm font-semibold hover:bg-brand-navy-text transition-all shadow-sm disabled:opacity-50">
+                {(connectionStatus === "creating" || connectionStatus === "connecting") ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                {connectionStatus === "waiting_qr" ? "انتظار المسح..." : "إنشاء جلسة جديدة"}
               </button>
-            )}
-          </div>
+
+              <button onClick={handleSaveWA} disabled={savingWA}
+                className="flex items-center gap-2 rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50">
+                {savingWA ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                حفظ الإعدادات
+              </button>
+
+              {(connectionStatus === "waiting_qr" || connectionStatus === "connecting") && (
+                <button onClick={handleRefreshQR}
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-all">
+                  <RefreshCw className="w-4 h-4" />
+                  تحديث QR
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
