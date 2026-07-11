@@ -51,7 +51,7 @@ export async function createOpenWASession(
   baseUrl: string,
   token: string,
   sessionName: string,
-  projectId?: string
+  webhookUrl?: string
 ): Promise<{ sessionId: string; qr?: string }> {
   // Check if session already exists
   let sid: string | undefined;
@@ -98,19 +98,16 @@ export async function createOpenWASession(
     }
   }
 
-  if (projectId) {
-    const webhookUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/api/openwa/webhook?projectId=${projectId}`;
-    if (webhookUrl.startsWith("http")) {
-      await openwaFetch(baseUrl, `/api/sessions/${sid}/webhooks`, {
-        method: "POST",
-        headers: { "X-API-Key": token, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: webhookUrl,
-          events: ["message.received", "session.status"],
-          retryCount: 3,
-        }),
-      }).catch(() => {});
-    }
+  if (webhookUrl?.startsWith("http")) {
+    await openwaFetch(baseUrl, `/api/sessions/${sid}/webhooks`, {
+      method: "POST",
+      headers: { "X-API-Key": token, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: webhookUrl,
+        events: ["message.received", "session.status"],
+        retryCount: 3,
+      }),
+    }).catch(() => {});
   }
 
   let qr: string | undefined;

@@ -25,7 +25,9 @@ export async function POST(
       );
     }
 
-    const result = await createOpenWASession(baseUrl, apiToken, sessionName, projectId);
+    const origin = new URL(request.url).origin;
+    const webhookUrl = `${origin}/api/openwa/webhook?projectId=${projectId}`;
+    const result = await createOpenWASession(baseUrl, apiToken, sessionName, webhookUrl);
 
     return NextResponse.json({
       success: true,

@@ -611,8 +611,73 @@ export default function WhatsAppPage() {
               ? `${window.location.origin}/api/openwa/webhook?projectId=${projectId}`
               : ""}
           </code>
+          {form.baseUrl && form.apiToken && form.sessionName && (
+            <WebhookUpdater
+              projectId={projectId}
+              baseUrl={form.baseUrl}
+              apiToken={form.apiToken}
+              sessionName={form.sessionName}
+            />
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function WebhookUpdater({
+  projectId,
+  baseUrl,
+  apiToken,
+  sessionName,
+}: {
+  projectId: string;
+  baseUrl: string;
+  apiToken: string;
+  sessionName: string;
+}) {
+  const [updating, setUpdating] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleUpdate() {
+    setUpdating(true);
+    setDone(false);
+    setError("");
+    try {
+      const res = await fetch(`/api/projects/${projectId}/whatsapp-session/webhook`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl, apiToken, sessionName }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDone(true);
+      } else {
+        setError(data.error || "فشل التحديث");
+      }
+    } catch {
+      setError("فشل الاتصال");
+    }
+    setUpdating(false);
+  }
+
+  return (
+    <div className="mt-4">
+      <button
+        onClick={handleUpdate}
+        disabled={updating}
+        className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50"
+      >
+        {updating ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <RefreshCw className="w-3.5 h-3.5" />
+        )}
+        تحديث Webhook على OpenWA
+      </button>
+      {done && <p className="text-xs text-green-600 mt-2">✅ تم تحديث رابط Webhook</p>}
+      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
     </div>
   );
 }
