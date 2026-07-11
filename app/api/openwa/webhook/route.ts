@@ -78,11 +78,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return errorResponse(422, "Validation failed", errDetail);
     }
 
-    const { from, body, messageId, projectId } = parsed.data;
+    const { from, body, messageId, projectId, sessionId } = parsed.data;
 
     if (!from || !body) {
       console.log("[webhook] test/verification request (no from/body), returning ok");
       return NextResponse.json({ status: "ok", test: true, duration: Date.now() - start });
+    }
+
+    // Ignore group chats, newsletters, broadcasts, and device-linked messages
+    if (/@(g\.us|newsletter|broadcast|lid)$/i.test(from)) {
+      console.log(`[webhook] ignoring unsupported source: ${from}`);
+      return NextResponse.json({ status: "ok", ignored: true, reason: "unsupported_source" });
     }
 
     const eventId = await logWebhookEvent({
@@ -118,7 +124,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const reply = "تم تحويل محادثتك إلى فريق الدعم البشري. سيتم الرد عليك قريبًا.";
       console.log("[webhook] handoff requested, sending reply to", from);
       try {
-        await sendMessage(from, reply, projectId);
+        await sendMessage(from, reply, projectId, sessionId);
       } catch (e) {
         console.error("[webhook] sendMessage (handoff) failed:", e instanceof Error ? e.message : String(e));
       }
@@ -131,7 +137,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Send reply
     try {
-      await sendMessage(from, reply, projectId);
+      await sendMessage(from, reply, projectId, sessionId);
     } catch (sendErr) {
       await markWebhookFailed(
         eventId,

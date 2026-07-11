@@ -37,10 +37,11 @@ export default function ToastContainer() {
   };
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
+    <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2" aria-live="polite">
       {toasts.map((t) => (
         <div
           key={t.id}
+          role="alert"
           className={`animate-slide-up rounded-lg px-4 py-2.5 text-sm shadow-lg ${colors[t.type]}`}
         >
           {t.message}

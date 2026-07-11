@@ -3,13 +3,22 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { LayoutDashboard, ClipboardList, Users, Building2, CreditCard, ArrowLeft } from "lucide-react";
+
+const iconMap: Record<string, React.ReactNode> = {
+  "لوحة التحكم": <LayoutDashboard className="w-5 h-5" />,
+  "طلبات التسجيل": <ClipboardList className="w-5 h-5" />,
+  "المستخدمين": <Users className="w-5 h-5" />,
+  "الشركات والمشاريع": <Building2 className="w-5 h-5" />,
+  "الاشتراكات": <CreditCard className="w-5 h-5" />,
+};
 
 const navItems = [
-  { href: "/admin", label: "لوحة التحكم", icon: "📊" },
-  { href: "/admin/registrations", label: "طلبات التسجيل", icon: "📋" },
-  { href: "/admin/users", label: "المستخدمين", icon: "👥" },
-  { href: "/admin/tenants", label: "الشركات والمشاريع", icon: "🏢" },
-  { href: "/admin/subscriptions", label: "الاشتراكات", icon: "💳" },
+  { href: "/admin", label: "لوحة التحكم" },
+  { href: "/admin/registrations", label: "طلبات التسجيل" },
+  { href: "/admin/users", label: "المستخدمين" },
+  { href: "/admin/tenants", label: "الشركات والمشاريع" },
+  { href: "/admin/subscriptions", label: "الاشتراكات" },
 ];
 
 export default function AdminLayout({
@@ -55,7 +64,8 @@ export default function AdminLayout({
       <aside className="w-64 border-l bg-white p-4 shadow-sm">
         <div className="mb-6">
           <Link href="/admin" className="flex items-center gap-2">
-            <span className="text-lg font-bold text-gray-800">⚙️ لوحة التحكم</span>
+            <LayoutDashboard className="w-5 h-5 text-brand-navy" />
+            <span className="text-lg font-bold text-brand-navy">لوحة التحكم</span>
           </Link>
         </div>
         <nav className="space-y-1">
@@ -69,11 +79,11 @@ export default function AdminLayout({
                 href={item.href}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
                   isActive
-                    ? "bg-blue-50 font-medium text-blue-700"
+                    ? "bg-brand-navy/5 font-medium text-brand-navy"
                     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 }`}
               >
-                <span>{item.icon}</span>
+                <span className="flex items-center">{iconMap[item.label]}</span>
                 <span>{item.label}</span>
               </Link>
             );
@@ -84,7 +94,8 @@ export default function AdminLayout({
             href="/"
             className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
           >
-            ← العودة للتطبيق
+            <ArrowLeft className="w-4 h-4" />
+            العودة للتطبيق
           </Link>
         </div>
       </aside>

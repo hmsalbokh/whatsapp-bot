@@ -33,154 +33,207 @@ export default function LandingPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-[#f9fafb] flex flex-col items-center px-4 py-6">
-      <header className="w-full max-w-[1400px] mx-auto flex items-center justify-between mb-8 px-2">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-[#0a152d] to-[#1a2d4d] shadow-md group-hover:shadow-lg transition-all">
-            <MessageCircle className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* Navigation */}
+      <header className="sticky top-0 z-50 border-b border-slate-200/50 bg-white/80 backdrop-blur-lg">
+        <div className="max-w-[1200px] mx-auto flex items-center justify-between px-4 h-16">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand-navy shadow-sm">
+              <MessageCircle className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-display text-base font-semibold text-brand-navy-text">
+              واتساب بوت
+            </span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-1">
+            <Link
+              href="/pricing"
+              className="rounded-lg px-4 py-2 text-sm font-body text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+            >
+              الخطط
+            </Link>
+            <Link
+              href="/register"
+              className="rounded-lg px-4 py-2 text-sm font-body text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+            >
+              تواصل معنا
+            </Link>
+          </nav>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/auth/login"
+              className="rounded-lg px-4 py-2 text-sm font-body font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              دخول
+            </Link>
+            <Link
+              href="/register"
+              className="rounded-lg bg-brand-navy text-white px-5 py-2 text-sm font-body font-semibold hover:bg-brand-navy-light transition-colors shadow-sm"
+            >
+              ابدأ مجاناً
+            </Link>
           </div>
-          <span className="font-display text-lg font-semibold text-[#0a1b33]">
-            واتساب بوت
-          </span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/auth/login"
-            className="rounded-full px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
-          >
-            دخول
-          </Link>
-          <Link
-            href="/register"
-            className="rounded-full px-6 py-2.5 text-sm font-semibold text-white transition-all shadow-md hover:shadow-lg"
-            style={{ backgroundColor: "#0a152d" }}
-          >
-            بدء التجربة
-          </Link>
         </div>
       </header>
 
-      <HeroSection />
+      <main>
+        <HeroSection />
 
-      {/* Stats bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="mt-10 w-full max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-4"
-      >
-        {stats.map((s) => (
-          <div
-            key={s.label}
-            className="rounded-2xl border border-slate-200/60 bg-white p-5 text-center shadow-sm"
-          >
-            <p className="font-display text-2xl font-bold text-[#0a152d]">{s.value}</p>
-            <p className="mt-1 text-xs text-slate-500">{s.label}</p>
-          </div>
-        ))}
-      </motion.div>
-
-      {/* Marquee */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="mt-12 w-full max-w-[1400px] mx-auto"
-      >
-        <MarqueeScroller />
-      </motion.div>
-
-      {/* Features */}
-      <section className="mt-16 w-full max-w-[1400px] mx-auto">
+        {/* Stats bar */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-10"
+          transition={{ duration: 0.5 }}
+          className="max-w-[1200px] mx-auto mt-12 px-4"
         >
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#0a152d]/5 border border-[#0a152d]/10 px-4 py-1.5 text-xs font-semibold text-[#0a152d] mb-4">
-            <MessageCircle className="w-3.5 h-3.5" />
-            مميزات المنصة
-          </div>
-          <h2 className="font-display text-3xl md:text-4xl font-semibold text-[#0a1b33]">
-            كل ما تحتاجه لإدارة <span className="text-green-500">خدمة العملاء</span>
-          </h2>
-          <p className="mt-3 text-slate-500 max-w-xl mx-auto">
-            منصة متكاملة تجمع بين الذكاء الاصطناعي والأتمتة لتحسين تجربة عملائك
-          </p>
-        </motion.div>
-        <div className="grid gap-6 md:grid-cols-3">
-          {features.map((f, i) => (
-            <FeatureCard key={f.title} feature={f} index={i} />
-          ))}
-        </div>
-      </section>
-
-      {/* Highlights */}
-      <section className="mt-16 w-full max-w-[1400px] mx-auto">
-        <div className="rounded-3xl bg-gradient-to-br from-[#0a152d] to-[#1a2d4d] p-8 md:p-12 shadow-xl">
-          <div className="grid gap-8 md:grid-cols-3">
-            {highlights.map((h) => {
-              const Icon = h.icon;
-              return (
-                <motion.div
-                  key={h.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5 }}
-                  className="text-center"
-                >
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/10 border border-white/10 mb-5">
-                    <Icon className="w-7 h-7 text-white" />
-                  </div>
-                  <h3 className="font-display text-lg font-semibold text-white mb-2">
-                    {h.title}
-                  </h3>
-                  <p className="text-sm text-white/60 leading-relaxed">
-                    {h.desc}
+          <div className="rounded-2xl border border-slate-200/60 bg-white p-6 md:p-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {stats.map((s) => (
+                <div key={s.label} className="text-center">
+                  <p className="font-display text-3xl font-bold text-brand-navy-text">
+                    {s.value}
                   </p>
-                </motion.div>
-              );
-            })}
+                  <p className="mt-1 text-xs text-slate-500 font-body">
+                    {s.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Trust marquee */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="max-w-[1200px] mx-auto mt-16 px-4"
+        >
+          <p className="text-center text-xs text-slate-400 font-body mb-2 tracking-wider uppercase">
+            تستخدمها فرق من جميع أنحاء العالم
+          </p>
+          <MarqueeScroller />
+        </motion.div>
+
+        {/* Features */}
+        <section className="max-w-[1200px] mx-auto mt-16 px-4">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 rounded-full bg-brand-navy/5 px-4 py-1.5 mb-4">
+              <MessageCircle className="w-3.5 h-3.5 text-brand-navy" />
+              <span className="text-[11px] font-display font-semibold text-brand-navy tracking-wide">
+                مميزات المنصة
+              </span>
+            </div>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-brand-navy-text leading-tight">
+              كل ما تحتاجه لإدارة
+              <br className="md:hidden" />
+              <span className="text-brand-emerald"> خدمة العملاء</span>
+            </h2>
+            <p className="mt-3 text-slate-500 max-w-md mx-auto font-body text-base">
+              منصة متكاملة تجمع بين الذكاء الاصطناعي والأتمتة لتحسين تجربة عملائك
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {features.map((f, i) => (
+              <FeatureCard key={f.title} feature={f} index={i} />
+            ))}
+          </div>
+        </section>
+
+        {/* Highlights (dark section) */}
+        <section className="max-w-[1200px] mx-auto mt-20 px-4">
+          <div className="rounded-3xl bg-gradient-to-br from-brand-navy to-brand-navy-light p-8 md:p-14 shadow-xl">
+            <div className="text-center mb-10">
+              <h2 className="font-display text-2xl md:text-3xl font-bold text-white leading-tight">
+                لماذا تختار واتساب بوت؟
+              </h2>
+              <p className="mt-2 text-white/50 font-body text-sm max-w-md mx-auto">
+                منصة بنيت لتعمل — لا مجرد وعد
+              </p>
+            </div>
+            <div className="grid gap-8 md:grid-cols-3">
+              {highlights.map((h) => {
+                const Icon = h.icon;
+                return (
+                  <motion.div
+                    key={h.title}
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4 }}
+                    className="text-center"
+                  >
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/10 mb-4">
+                      <Icon className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="font-display text-base font-semibold text-white mb-1.5">
+                      {h.title}
+                    </h3>
+                    <p className="text-sm text-white/50 leading-relaxed font-body max-w-xs mx-auto">
+                      {h.desc}
+                    </p>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="max-w-[1200px] mx-auto mt-20 px-4 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="inline-flex items-center gap-2 rounded-full bg-brand-emerald/10 px-4 py-1.5 mb-4">
+              <span className="w-2 h-2 rounded-full bg-brand-emerald" />
+              <span className="text-[11px] font-display font-semibold text-brand-emerald-dark tracking-wide">
+                ابدأ اليوم
+              </span>
+            </div>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-brand-navy-text leading-tight">
+              جهز بوتك الذكي اليوم
+            </h2>
+            <p className="mt-3 text-slate-500 max-w-md mx-auto font-body text-base">
+              ابدأ مجاناً بدون بطاقة ائتمان وأطلق العنان لذكاء اصطناعي يخدم عملاءك
+            </p>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 mt-8 rounded-xl bg-brand-emerald text-white px-8 py-3.5 text-sm font-display font-semibold hover:bg-brand-emerald-dark transition-colors shadow-lg shadow-brand-emerald/20"
+            >
+              ابدأ مجاناً الآن
+              <ChevronLeft className="w-4 h-4" />
+            </Link>
+            <p className="mt-4 text-xs text-slate-400 font-body">
+              لا تحتاج بطاقة ائتمان · إعداد خلال ٥ دقائق
+            </p>
+          </motion.div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="max-w-[1200px] mx-auto mt-20 px-4 border-t border-slate-200/60 py-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="w-4 h-4 text-brand-navy" />
+            <span className="font-display text-sm font-semibold text-brand-navy-text">واتساب بوت</span>
+          </div>
+          <p className="text-xs text-slate-400 font-body">
+            © {new Date().getFullYear()} — منصة خدمة العملاء الذكية
+          </p>
+          <div className="flex items-center gap-4">
+            <Link href="/pricing" className="text-xs text-slate-400 hover:text-slate-600 font-body transition-colors">
+              الخطط
+            </Link>
+            <Link href="/register" className="text-xs text-slate-400 hover:text-slate-600 font-body transition-colors">
+              التسجيل
+            </Link>
           </div>
         </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="mt-16 w-full max-w-[1400px] mx-auto text-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="font-display text-3xl md:text-4xl font-semibold text-[#0a1b33]">
-            جهز بوتك الذكي اليوم
-          </h2>
-          <p className="mt-3 text-slate-500 max-w-lg mx-auto">
-            ابدأ مجاناً بدون بطاقة ائتمان وأطلق العنان لذكاء اصطناعي يخدم عملاءك
-          </p>
-          <Link
-            href="/register"
-            className="inline-flex items-center gap-2 mt-8 rounded-full px-8 py-3.5 text-sm font-semibold text-white shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5"
-            style={{ backgroundColor: "#0a152d" }}
-          >
-            ابدأ مجاناً الآن
-            <ChevronLeft className="w-4 h-4" />
-          </Link>
-        </motion.div>
-      </section>
-
-      <footer className="mt-20 w-full max-w-[1400px] mx-auto border-t border-slate-200/60 py-8 text-center text-sm text-slate-400">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <MessageCircle className="w-4 h-4" />
-          <span className="font-display font-semibold text-slate-500">واتساب بوت</span>
-        </div>
-        <p>© {new Date().getFullYear()} — منصة خدمة العملاء الذكية</p>
       </footer>
     </div>
   );

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MessageCircle, Settings } from "lucide-react";
 
 export default function Header({
   user,
@@ -11,7 +12,8 @@ export default function Header({
     <header className="flex items-center justify-between border-b bg-white px-4 py-2 shadow-sm">
       <div className="flex items-center gap-6">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-lg font-bold text-gray-800">🤖 WhatsApp Bot</span>
+          <MessageCircle className="w-5 h-5 text-brand-navy" />
+          <span className="text-lg font-bold text-brand-navy">WhatsApp Bot</span>
         </Link>
         <nav className="flex items-center gap-4 text-sm">
           <Link href="/projects" className="text-gray-600 hover:text-gray-900">
@@ -27,8 +29,9 @@ export default function Header({
             الخطط
           </Link>
           {isAdmin && (
-            <Link href="/admin" className="text-blue-600 hover:text-blue-800 font-medium">
-              ⚙️ لوحة التحكم
+            <Link href="/admin" className="text-brand-navy hover:text-brand-navy-light font-medium flex items-center gap-1">
+              <Settings className="w-4 h-4" />
+              لوحة التحكم
             </Link>
           )}
         </nav>
@@ -38,7 +41,7 @@ export default function Header({
         <form action="/auth/signout" method="POST">
           <button
             type="submit"
-            className="rounded-lg px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50"
+            className="rounded-lg px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50 cursor-pointer"
           >
             تسجيل الخروج
           </button>

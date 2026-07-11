@@ -46,8 +46,16 @@ export default async function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <body className="bg-gray-50 text-gray-900 antialiased">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:rounded-lg focus:bg-brand-navy focus:px-4 focus:py-2 focus:text-sm focus:text-white focus:outline-none"
+        >
+          تخطى إلى المحتوى الرئيسي
+        </a>
         {user && <Header user={{ email: user.email!, id: user.id }} isAdmin={isAdmin} />}
-        {children}
+        <main id="main-content" tabIndex={-1}>
+          {children}
+        </main>
         <ToastContainer />
       </body>
     </html>

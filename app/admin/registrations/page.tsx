@@ -134,7 +134,7 @@ export default function AdminRegistrationsPage() {
             onClick={() => setFilter(tab.key)}
             className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
               filter === tab.key
-                ? "bg-[#0a152d] text-white"
+                ? "bg-brand-navy text-white"
                 : "bg-white text-slate-500 border border-slate-200 hover:border-slate-300"
             }`}
           >

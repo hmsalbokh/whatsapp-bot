@@ -238,7 +238,7 @@ export default function WhatsAppPage() {
           <ArrowLeft className="w-4 h-4" />
           العودة للمشروع
         </Link>
-        <h1 className="text-2xl font-bold text-[#0a1b33]">ربط واتساب</h1>
+        <h1 className="text-2xl font-bold text-brand-navy-text">ربط واتساب</h1>
         <p className="text-sm text-slate-500 mt-1">{projectName}</p>
       </div>
 
@@ -335,11 +335,11 @@ export default function WhatsAppPage() {
         {/* Main form */}
         <div className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#0a152d]/5">
-              <Smartphone className="w-5 h-5 text-[#0a152d]" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-navy/5">
+              <Smartphone className="w-5 h-5 text-brand-navy" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#0a1b33]">إعدادات OpenWA</h2>
+              <h2 className="font-semibold text-brand-navy-text">إعدادات OpenWA</h2>
               <p className="text-xs text-slate-400">أدخل بيانات خادم OpenWA الخاص بك</p>
             </div>
           </div>
@@ -354,7 +354,7 @@ export default function WhatsAppPage() {
                 dir="ltr"
                 value={form.baseUrl}
                 onChange={(e) => updateField("baseUrl", e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#0a152d] transition-all"
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all"
                 placeholder="https://your-openwa.onrender.com"
               />
             </div>
@@ -368,7 +368,7 @@ export default function WhatsAppPage() {
                 dir="ltr"
                 value={form.apiToken}
                 onChange={(e) => updateField("apiToken", e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#0a152d] transition-all font-mono"
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all font-mono"
                 placeholder="owa_k1_..."
               />
             </div>
@@ -382,7 +382,7 @@ export default function WhatsAppPage() {
                 dir="ltr"
                 value={form.sessionName}
                 onChange={(e) => updateField("sessionName", e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#0a152d] transition-all font-mono"
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all font-mono"
                 placeholder="my-bot"
               />
               <p className="text-[11px] text-slate-400 mt-1">
@@ -401,7 +401,7 @@ export default function WhatsAppPage() {
             <button
               onClick={handleCreateSession}
               disabled={connectionStatus === "creating" || connectionStatus === "waiting_qr" || connectionStatus === "connecting"}
-              className="flex items-center gap-2 rounded-xl bg-[#0a152d] text-white px-6 py-2.5 text-sm font-semibold hover:bg-[#0a1b33] transition-all shadow-sm disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-brand-navy text-white px-6 py-2.5 text-sm font-semibold hover:bg-brand-navy-text transition-all shadow-sm disabled:opacity-50"
             >
               {(connectionStatus === "creating" || connectionStatus === "connecting") ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -443,7 +443,7 @@ export default function WhatsAppPage() {
             animate={{ opacity: 1 }}
             className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm"
           >
-            <h2 className="font-semibold text-[#0a1b33] mb-4">حالة الاتصال</h2>
+            <h2 className="font-semibold text-brand-navy-text mb-4">حالة الاتصال</h2>
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
                 <span className="text-slate-500">الحالة</span>
@@ -474,7 +474,7 @@ export default function WhatsAppPage() {
         <div className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
             <ExternalLink className="w-5 h-5 text-slate-400" />
-            <h2 className="font-semibold text-[#0a1b33]">رابط Webhook</h2>
+            <h2 className="font-semibold text-brand-navy-text">رابط Webhook</h2>
           </div>
           <p className="text-xs text-slate-500 mb-2">
             استخدم هذا الرابط في إعدادات OpenWA (Settings → Webhook URL):

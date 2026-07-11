@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { MessageCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -40,8 +42,11 @@ export default function SignupPage() {
       <div className="w-full max-w-sm">
         <div className="rounded-2xl bg-white p-8 shadow-lg">
           <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold text-gray-900">🤖 WhatsApp Bot</h1>
-            <p className="mt-1 text-sm text-gray-500">إنشاء حساب جديد</p>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <MessageCircle className="w-6 h-6 text-brand-navy" />
+              <h1 className="text-2xl font-bold text-brand-navy">WhatsApp Bot</h1>
+            </div>
+            <p className="text-sm text-gray-500">إنشاء حساب جديد</p>
           </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
@@ -58,9 +63,10 @@ export default function SignupPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base shadow-sm outline-none focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/20"
                 dir="ltr"
                 placeholder="admin@example.com"
+                autoComplete="email"
               />
             </div>
 
@@ -71,20 +77,31 @@ export default function SignupPage() {
               >
                 كلمة المرور
               </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                dir="ltr"
-                placeholder="••••••••"
-              />
+              <div className="relative mt-1">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base shadow-sm outline-none focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/20"
+                  dir="ltr"
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
                 {error}
               </div>
             )}
@@ -92,18 +109,31 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+              className="w-full rounded-lg bg-brand-navy px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-navy-light disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
             >
-              {loading ? "جاري إنشاء الحساب..." : "إنشاء حساب"}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  جاري إنشاء الحساب...
+                </>
+              ) : (
+                "إنشاء حساب"
+              )}
             </button>
           </form>
 
           <p className="mt-4 text-center text-xs text-gray-400">
             لديك حساب بالفعل؟{" "}
-            <a href="/auth/login" className="text-blue-600 hover:underline">
+            <a href="/auth/login" className="text-brand-navy hover:underline font-medium">
               تسجيل الدخول
             </a>
           </p>
+
+          <div className="mt-4 text-center">
+            <a href="/" className="text-xs text-gray-400 hover:text-gray-600">
+              ← العودة للصفحة الرئيسية
+            </a>
+          </div>
         </div>
       </div>
     </div>

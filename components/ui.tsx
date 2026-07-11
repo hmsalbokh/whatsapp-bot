@@ -44,7 +44,7 @@ export function EmptyState({
   description,
   action,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   description: string;
   action?: React.ReactNode;
@@ -52,7 +52,7 @@ export function EmptyState({
   return (
     <div className="flex items-center justify-center min-h-[40vh]">
       <div className="text-center max-w-md">
-        <p className="text-5xl mb-4">{icon}</p>
+        <div className="flex justify-center mb-4">{icon}</div>
         <h3 className="text-lg font-semibold text-gray-800 mb-1">{title}</h3>
         <p className="text-sm text-gray-500 mb-4">{description}</p>
         {action}

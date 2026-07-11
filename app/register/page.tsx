@@ -53,7 +53,7 @@ export default function RegisterPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[#f9fafb] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -63,7 +63,7 @@ export default function RegisterPage() {
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-50">
               <Check className="w-10 h-10 text-green-500" />
             </div>
-            <h1 className="font-display text-2xl font-bold text-[#0a1b33] mb-3">
+            <h1 className="font-display text-2xl font-bold text-brand-navy-text mb-3">
               تم استلام طلبك 🎉
             </h1>
             <p className="text-slate-500 leading-relaxed mb-6">
@@ -72,14 +72,14 @@ export default function RegisterPage() {
             </p>
             <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 mb-8 text-right">
               <p className="text-xs text-slate-400 mb-1">ملخص الطلب</p>
-              <p className="text-sm font-medium text-[#0a1b33]">{fullName}</p>
+              <p className="text-sm font-medium text-brand-navy-text">{fullName}</p>
               <p className="text-sm text-slate-500">{email}</p>
               <p className="text-sm text-slate-500">{companyName}</p>
               <p className="text-sm text-slate-500">الخطة: {plans.find(p => p.slug === planSlug)?.name}</p>
             </div>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-full bg-[#0a152d] text-white px-8 py-3 text-sm font-semibold shadow-md hover:shadow-lg transition-all"
+              className="inline-flex items-center gap-2 rounded-full bg-brand-navy text-white px-8 py-3 text-sm font-semibold shadow-md hover:shadow-lg transition-all"
             >
               <ChevronRight className="w-4 h-4" />
               العودة للرئيسية
@@ -91,16 +91,16 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f9fafb] flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-[#0a152d] to-[#1a2d4d] shadow-md">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-brand-navy to-brand-navy-light shadow-md">
               <MessageCircle className="w-5 h-5 text-white" />
             </div>
-            <span className="font-display text-lg font-semibold text-[#0a1b33]">واتساب بوت</span>
+            <span className="font-display text-lg font-semibold text-brand-navy-text">واتساب بوت</span>
           </Link>
-          <h1 className="font-display text-3xl font-bold text-[#0a1b33]">طلب اشتراك جديد</h1>
+          <h1 className="font-display text-3xl font-bold text-brand-navy-text">طلب اشتراك جديد</h1>
           <p className="mt-2 text-slate-500">املأ البيانات وسيتم تفعيل حسابك من قبل الإدارة</p>
         </div>
 
@@ -116,13 +116,13 @@ export default function RegisterPage() {
                 <div
                   className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all ${
                     step >= s
-                      ? "bg-[#0a152d] text-white"
+                      ? "bg-brand-navy text-white"
                       : "bg-slate-100 text-slate-400"
                   }`}
                 >
                   {s}
                 </div>
-                {s < 2 && <div className={`w-12 h-0.5 rounded ${step > s ? "bg-[#0a152d]" : "bg-slate-200"}`} />}
+                {s < 2 && <div className={`w-12 h-0.5 rounded ${step > s ? "bg-brand-navy" : "bg-slate-200"}`} />}
               </div>
             ))}
             <div className="text-xs text-slate-400 mr-2">
@@ -138,7 +138,7 @@ export default function RegisterPage() {
                 className="space-y-5"
               >
                 <div>
-                  <label className="block text-sm font-medium text-[#0a1b33] mb-1.5">
+                  <label className="block text-sm font-medium text-brand-navy-text mb-1.5">
                     الاسم الكامل
                   </label>
                   <div className="relative">
@@ -148,14 +148,14 @@ export default function RegisterPage() {
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 py-3 pr-10 pl-4 text-sm outline-none focus:border-[#0a152d] focus:ring-1 focus:ring-[#0a152d] transition-all"
+                      className="w-full rounded-xl border border-slate-200 py-3 pr-10 pl-4 text-sm outline-none focus:border-brand-navy focus:ring-1 focus:ring-brand-navy transition-all"
                       placeholder="محمد أحمد"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#0a1b33] mb-1.5">
+                  <label className="block text-sm font-medium text-brand-navy-text mb-1.5">
                     البريد الإلكتروني
                   </label>
                   <div className="relative">
@@ -166,14 +166,14 @@ export default function RegisterPage() {
                       dir="ltr"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 py-3 pr-10 pl-4 text-sm outline-none focus:border-[#0a152d] focus:ring-1 focus:ring-[#0a152d] transition-all"
+                      className="w-full rounded-xl border border-slate-200 py-3 pr-10 pl-4 text-sm outline-none focus:border-brand-navy focus:ring-1 focus:ring-brand-navy transition-all"
                       placeholder="admin@example.com"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#0a1b33] mb-1.5">
+                  <label className="block text-sm font-medium text-brand-navy-text mb-1.5">
                     رقم الجوال (اختياري)
                   </label>
                   <div className="relative">
@@ -183,14 +183,14 @@ export default function RegisterPage() {
                       dir="ltr"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 py-3 pr-10 pl-4 text-sm outline-none focus:border-[#0a152d] focus:ring-1 focus:ring-[#0a152d] transition-all"
+                      className="w-full rounded-xl border border-slate-200 py-3 pr-10 pl-4 text-sm outline-none focus:border-brand-navy focus:ring-1 focus:ring-brand-navy transition-all"
                       placeholder="+966 5x xxx xxxx"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#0a1b33] mb-1.5">
+                  <label className="block text-sm font-medium text-brand-navy-text mb-1.5">
                     اسم الشركة / المؤسسة
                   </label>
                   <div className="relative">
@@ -200,7 +200,7 @@ export default function RegisterPage() {
                       required
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 py-3 pr-10 pl-4 text-sm outline-none focus:border-[#0a152d] focus:ring-1 focus:ring-[#0a152d] transition-all"
+                      className="w-full rounded-xl border border-slate-200 py-3 pr-10 pl-4 text-sm outline-none focus:border-brand-navy focus:ring-1 focus:ring-brand-navy transition-all"
                       placeholder="مؤسسة مثال للتجارة"
                     />
                   </div>
@@ -209,7 +209,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="w-full rounded-xl bg-[#0a152d] text-white py-3 text-sm font-semibold hover:bg-[#0a1b33] transition-colors shadow-md"
+                  className="w-full rounded-xl bg-brand-navy text-white py-3 text-sm font-semibold hover:bg-brand-navy-text transition-colors shadow-md"
                 >
                   التالي: اختر الخطة
                 </button>
@@ -233,30 +233,30 @@ export default function RegisterPage() {
                         onClick={() => setPlanSlug(plan.slug)}
                         className={`relative flex items-center gap-4 rounded-2xl border p-5 text-right transition-all ${
                           isSelected
-                            ? "border-[#0a152d] bg-[#0a152d]/5 ring-1 ring-[#0a152d]"
+                            ? "border-brand-navy bg-brand-navy/5 ring-1 ring-brand-navy"
                             : "border-slate-200 hover:border-slate-300"
                         }`}
                       >
                         {isPopular && (
-                          <span className="absolute -top-2.5 right-4 rounded-full bg-[#0a152d] px-3 py-0.5 text-[10px] font-semibold text-white">
+                          <span className="absolute -top-2.5 right-4 rounded-full bg-brand-navy px-3 py-0.5 text-[10px] font-semibold text-white">
                             الأكثر طلباً
                           </span>
                         )}
                         <div className={`flex items-center justify-center w-12 h-12 rounded-2xl transition-all ${
-                          isSelected ? "bg-[#0a152d] text-white" : "bg-slate-100 text-slate-400"
+                          isSelected ? "bg-brand-navy text-white" : "bg-slate-100 text-slate-400"
                         }`}>
                           <CreditCard className="w-5 h-5" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-semibold text-[#0a1b33]">{plan.name}</p>
+                          <p className="font-semibold text-brand-navy-text">{plan.name}</p>
                           <p className="text-xs text-slate-500">{plan.desc}</p>
                         </div>
                         <div className="text-left">
-                          <p className="font-bold text-[#0a152d]">{plan.price}</p>
+                          <p className="font-bold text-brand-navy">{plan.price}</p>
                         </div>
                         {isSelected && (
                           <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                            <Check className="w-5 h-5 text-[#0a152d]" />
+                            <Check className="w-5 h-5 text-brand-navy" />
                           </div>
                         )}
                       </button>
@@ -281,7 +281,7 @@ export default function RegisterPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 rounded-xl bg-[#0a152d] text-white py-3 text-sm font-semibold hover:bg-[#0a1b33] transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 rounded-xl bg-brand-navy text-white py-3 text-sm font-semibold hover:bg-brand-navy-text transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {loading ? (
                       <>
@@ -299,7 +299,7 @@ export default function RegisterPage() {
 
           <p className="mt-6 text-center text-xs text-slate-400">
             لديك حساب بالفعل؟{" "}
-            <Link href="/auth/login" className="text-[#0a152d] font-medium hover:underline">
+            <Link href="/auth/login" className="text-brand-navy font-medium hover:underline">
               تسجيل الدخول
             </Link>
           </p>

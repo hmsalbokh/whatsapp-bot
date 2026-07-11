@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { MessageCircle } from "lucide-react";
 
 interface Plan {
   id: string;
@@ -40,8 +41,9 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <header className="flex items-center justify-between border-b bg-white/80 px-6 py-3 backdrop-blur">
-        <Link href="/" className="text-lg font-bold text-gray-800">
-          🤖 WhatsApp Bot
+        <Link href="/" className="flex items-center gap-2 text-lg font-bold text-brand-navy">
+          <MessageCircle className="w-5 h-5" />
+          WhatsApp Bot
         </Link>
         <div className="flex items-center gap-3">
           <Link
@@ -52,7 +54,7 @@ export default function PricingPage() {
           </Link>
           <Link
             href="/register"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700"
+            className="rounded-lg bg-brand-navy px-4 py-2 text-sm text-white transition hover:bg-brand-navy-light"
           >
             بدء التجربة
           </Link>
@@ -74,7 +76,7 @@ export default function PricingPage() {
           <span className={`text-sm ${!yearly ? "font-semibold text-gray-900" : "text-gray-500"}`}>شهري</span>
           <button
             onClick={() => setYearly(!yearly)}
-            className={`relative h-6 w-12 rounded-full transition ${yearly ? "bg-blue-600" : "bg-gray-300"}`}
+            className={`relative h-6 w-12 rounded-full transition ${yearly ? "bg-brand-navy" : "bg-gray-300"}`}
           >
             <span
               className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${yearly ? "translate-x-6" : ""}`}
@@ -90,17 +92,17 @@ export default function PricingPage() {
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
           </div>
         ) : (
-          <div className={`grid gap-8 ${plans.length === 3 ? "md:grid-cols-3" : `md:grid-cols-${plans.length}`}`}>
+          <div className="grid gap-8 md:grid-cols-3">
             {plans.map((plan) => {
               const isFree = plan.price_monthly === 0;
               const isPopular = plan.slug === "pro";
               return (
                 <div
                   key={plan.id}
-                  className={`relative flex flex-col rounded-2xl border bg-white p-8 shadow-sm transition hover:shadow-lg ${isPopular ? "border-blue-300 ring-2 ring-blue-500" : "border-gray-200"}`}
+                  className={`relative flex flex-col rounded-2xl border bg-white p-8 shadow-sm transition hover:shadow-lg ${isPopular ? "border-brand-navy/30 ring-2 ring-brand-navy" : "border-gray-200"}`}
                 >
                   {isPopular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-xs font-semibold text-white">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-navy px-4 py-1 text-xs font-semibold text-white">
                       الأكثر طلباً
                     </span>
                   )}
@@ -128,7 +130,7 @@ export default function PricingPage() {
                     href={isFree ? "/auth/signup" : "/auth/signup"}
                     className={`block rounded-xl px-4 py-3 text-center text-sm font-semibold transition ${
                       isPopular
-                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        ? "bg-brand-navy text-white hover:bg-brand-navy-light"
                         : "border border-gray-300 text-gray-700 hover:bg-gray-50"
                     }`}
                   >

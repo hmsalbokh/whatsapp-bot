@@ -22,10 +22,13 @@ export async function buildAgentMessages(
 
   const convMessages = await getMessages(projectId, phone);
 
-  const filtered = convMessages.filter((m) => m.role !== "system");
+  const summaryMessages = convMessages.filter((m) => m.role === "system");
+  const conversationOnly = convMessages.filter((m) => m.role !== "system");
+
   const messages: ConversationMessage[] = [
     { role: "system", content: systemPrompt },
-    ...filtered,
+    ...summaryMessages,
+    ...conversationOnly,
   ];
 
   const projectSettings = await getProjectSettings(projectId);

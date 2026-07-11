@@ -156,26 +156,30 @@ export async function addMessage(
     .eq("id", conv.id);
 
   if (direction === "outbound") {
-    const { data: sumRow } = await getSupabase()
-      .from("conversations")
-      .select("summary_generated_at")
-      .eq("id", conv.id)
-      .single();
-    const s = sumRow as unknown as { summary_generated_at: string | null } | null;
-    const shouldSummarize = !s?.summary_generated_at
-      || (Date.now() - new Date(s.summary_generated_at).getTime()) > 60000;
+    try {
+      const { data: sumRow } = await getSupabase()
+        .from("conversations")
+        .select("summary_generated_at")
+        .eq("id", conv.id)
+        .single();
+      const s = sumRow as unknown as { summary_generated_at: string | null } | null;
+      const shouldSummarize = !s?.summary_generated_at
+        || (Date.now() - new Date(s.summary_generated_at).getTime()) > 60000;
 
-    if (shouldSummarize) {
-      const { count } = await getSupabase()
-        .from("messages")
-        .select("id", { count: "exact", head: true })
-        .eq("conversation_id", conv.id);
+      if (shouldSummarize) {
+        const { count } = await getSupabase()
+          .from("messages")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", conv.id);
 
-      if (count && count % SUMMARY_INTERVAL === 0) {
-        generateAndSaveSummary(projectId, phone).catch((err) =>
-          console.error("[memory] background summarization failed", err)
-        );
+        if (count && count % SUMMARY_INTERVAL === 0) {
+          generateAndSaveSummary(projectId, phone).catch((err) =>
+            console.error("[memory] background summarization failed", err)
+          );
+        }
       }
+    } catch (err) {
+      console.error("[memory] summary check failed, skipping:", err);
     }
   }
 }
@@ -192,11 +196,6 @@ export async function getMessages(
     .eq("conversation_id", conv.id)
     .order("created_at", { ascending: true })
     .limit(50);
-
-  const systemMessage: ConversationMessage = {
-    role: "system",
-    content: DEFAULT_SYSTEM_PROMPT,
-  };
 
   const dbRows = (rows ?? []) as unknown as {
     role: string;
@@ -222,7 +221,7 @@ export async function getMessages(
     return msg;
   });
 
-  const result: ConversationMessage[] = [systemMessage];
+  const result: ConversationMessage[] = [];
 
   try {
     const { data: sumRow } = await getSupabase()
