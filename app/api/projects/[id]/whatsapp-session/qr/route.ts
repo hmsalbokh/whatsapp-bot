@@ -16,13 +16,17 @@ export async function POST(
     await requireProjectAccess(user.id, projectId);
 
     const body = await request.json();
-    const { baseUrl, apiToken, sessionName } = body;
+    let { baseUrl, apiToken, sessionName } = body;
 
-    if (!baseUrl || !apiToken || !sessionName) {
-      return NextResponse.json(
-        { error: "baseUrl, apiToken, and sessionName are required" },
-        { status: 400 }
-      );
+    if (!sessionName) {
+      return NextResponse.json({ error: "اسم الجلسة مطلوب" }, { status: 400 });
+    }
+
+    baseUrl = baseUrl || process.env.OPENWA_BASE_URL || "";
+    apiToken = apiToken || process.env.OPENWA_API_TOKEN || "";
+
+    if (!baseUrl || !apiToken) {
+      return NextResponse.json({ error: "OpenWA غير مضبوط" }, { status: 400 });
     }
 
     const result = await getOpenWAQR(baseUrl, apiToken, sessionName);

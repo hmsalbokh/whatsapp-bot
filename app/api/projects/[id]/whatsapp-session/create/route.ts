@@ -16,11 +16,21 @@ export async function POST(
     await requireProjectAccess(user.id, projectId);
 
     const body = await request.json();
-    const { baseUrl, apiToken, sessionName } = body;
+    let { baseUrl, apiToken, sessionName } = body;
 
-    if (!baseUrl || !apiToken || !sessionName) {
+    if (!sessionName) {
       return NextResponse.json(
-        { error: "baseUrl, apiToken, and sessionName are required" },
+        { error: "اسم الجلسة مطلوب" },
+        { status: 400 }
+      );
+    }
+
+    baseUrl = baseUrl || process.env.OPENWA_BASE_URL || "";
+    apiToken = apiToken || process.env.OPENWA_API_TOKEN || "";
+
+    if (!baseUrl || !apiToken) {
+      return NextResponse.json(
+        { error: "بيانات خادم OpenWA غير مضبوطة — أضف OPENWA_BASE_URL و OPENWA_API_TOKEN في المتغيرات البيئية" },
         { status: 400 }
       );
     }

@@ -49,6 +49,7 @@ export default function WhatsAppPage() {
   const [qrError, setQrError] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [rawStatus, setRawStatus] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [form, setForm] = useState({
     baseUrl: "",
@@ -466,40 +467,12 @@ export default function WhatsAppPage() {
               <Smartphone className="w-5 h-5 text-brand-navy" />
             </div>
             <div>
-              <h2 className="font-semibold text-brand-navy-text">إعدادات OpenWA</h2>
-              <p className="text-xs text-slate-400">أدخل بيانات خادم OpenWA الخاص بك</p>
+              <h2 className="font-semibold text-brand-navy-text">جلسة واتساب</h2>
+              <p className="text-xs text-slate-400">اسم الجلسة يكفي — الباقي مضبوط مسبقاً</p>
             </div>
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                رابط خادم OpenWA
-              </label>
-              <input
-                type="url"
-                dir="ltr"
-                value={form.baseUrl}
-                onChange={(e) => updateField("baseUrl", e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all"
-                placeholder="https://your-openwa.onrender.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                رمز API (API Token)
-              </label>
-              <input
-                type="text"
-                dir="ltr"
-                value={form.apiToken}
-                onChange={(e) => updateField("apiToken", e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all font-mono"
-                placeholder="owa_k1_..."
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 اسم الجلسة
@@ -516,6 +489,46 @@ export default function WhatsAppPage() {
                 اسم تستخدمه لتمييز هذه الجلسة (حروف إنجليزية وأرقام)
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              {showAdvanced ? "إخفاء" : "إظهار"} الإعدادات المتقدمة
+            </button>
+
+            {showAdvanced && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    رابط خادم OpenWA
+                  </label>
+                  <input
+                    type="url"
+                    dir="ltr"
+                    value={form.baseUrl}
+                    onChange={(e) => updateField("baseUrl", e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all"
+                    placeholder="https://your-openwa.onrender.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    رمز API (API Token)
+                  </label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={form.apiToken}
+                    onChange={(e) => updateField("apiToken", e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-navy transition-all font-mono"
+                    placeholder="owa_k1_..."
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {error && (
