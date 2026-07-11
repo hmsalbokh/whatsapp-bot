@@ -173,6 +173,42 @@ export async function getOpenWASessionStatus(
   };
 }
 
+export async function startOpenWASession(
+  baseUrl: string,
+  token: string,
+  sessionNameOrId: string
+): Promise<void> {
+  const sid = await resolveSessionId(baseUrl, token, sessionNameOrId);
+  const res = await openwaFetch(baseUrl, `/api/sessions/${encodeURIComponent(sid)}/start`, {
+    method: "POST",
+    headers: { "X-API-Key": token, "Content-Type": "application/json" },
+    body: "{}",
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "unknown error");
+    throw new OpenWAError(`OpenWA start error (${res.status}): ${text}`, res.status);
+  }
+}
+
+export async function stopOpenWASession(
+  baseUrl: string,
+  token: string,
+  sessionNameOrId: string
+): Promise<void> {
+  const sid = await resolveSessionId(baseUrl, token, sessionNameOrId);
+  const res = await openwaFetch(baseUrl, `/api/sessions/${encodeURIComponent(sid)}/stop`, {
+    method: "POST",
+    headers: { "X-API-Key": token, "Content-Type": "application/json" },
+    body: "{}",
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "unknown error");
+    throw new OpenWAError(`OpenWA stop error (${res.status}): ${text}`, res.status);
+  }
+}
+
 export async function deleteOpenWASession(
   baseUrl: string,
   token: string,

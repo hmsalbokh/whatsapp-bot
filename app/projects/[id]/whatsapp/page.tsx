@@ -17,6 +17,9 @@ import {
   Wifi,
   WifiOff,
   ExternalLink,
+  Play,
+  Square,
+  Power,
 } from "lucide-react";
 
 interface WhatsAppSession {
@@ -28,7 +31,7 @@ interface WhatsAppSession {
   updated_at: string;
 }
 
-type ConnectionStatus = "idle" | "creating" | "waiting_qr" | "connecting" | "connected" | "error";
+type ConnectionStatus = "idle" | "creating" | "waiting_qr" | "connecting" | "connected" | "stopped" | "starting" | "stopping" | "error";
 
 export default function WhatsAppPage() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -203,6 +206,13 @@ export default function WhatsAppPage() {
     setConnectionStatus("idle");
     setQrCode(null);
     setPhoneNumber("");
+    try {
+      await fetch(`/api/projects/${projectId}/whatsapp-session/stop`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      }).catch(() => {});
+    } catch {}
     await fetch(`/api/projects/${projectId}/whatsapp-session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -218,6 +228,56 @@ export default function WhatsAppPage() {
     setQrError("");
     setQrCode(null);
     await fetchQRCode();
+  }
+
+  async function handleStartSession() {
+    setError("");
+    setConnectionStatus("starting");
+    try {
+      const res = await fetch(`/api/projects/${projectId}/whatsapp-session/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "فشل بدء الجلسة");
+        setConnectionStatus("stopped");
+        return;
+      }
+      setConnectionStatus("connecting");
+      startQrPolling();
+    } catch {
+      setError("فشل الاتصال بخادم OpenWA");
+      setConnectionStatus("stopped");
+    }
+  }
+
+  async function handleStopSession() {
+    setError("");
+    setConnectionStatus("stopping");
+    try {
+      const res = await fetch(`/api/projects/${projectId}/whatsapp-session/stop`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (qrPollRef.current) clearInterval(qrPollRef.current);
+      setQrCode(null);
+      setConnectionStatus("stopped");
+      await fetch(`/api/projects/${projectId}/whatsapp-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: "openwa",
+          config: form,
+          isActive: false,
+        }),
+      }).catch(() => {});
+    } catch {
+      setError("فشل إيقاف الجلسة");
+      setConnectionStatus("connected");
+    }
   }
 
   if (loading) {
@@ -253,6 +313,8 @@ export default function WhatsAppPage() {
               className={`rounded-2xl border p-5 ${
                 connectionStatus === "connected"
                   ? "bg-green-50 border-green-200"
+                  : connectionStatus === "stopped"
+                  ? "bg-amber-50 border-amber-200"
                   : connectionStatus === "error"
                   ? "bg-red-50 border-red-200"
                   : "bg-blue-50 border-blue-200"
@@ -261,21 +323,31 @@ export default function WhatsAppPage() {
               <div className="flex items-center gap-3">
                 {connectionStatus === "connected" ? (
                   <Wifi className="w-6 h-6 text-green-600" />
+                ) : connectionStatus === "stopped" ? (
+                  <WifiOff className="w-6 h-6 text-amber-500" />
                 ) : connectionStatus === "creating" ? (
                   <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
                 ) : connectionStatus === "waiting_qr" ? (
                   <Scan className="w-6 h-6 text-blue-600" />
-                ) : connectionStatus === "connecting" ? (
+                ) : connectionStatus === "connecting" || connectionStatus === "starting" ? (
                   <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                ) : connectionStatus === "stopping" ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
                 ) : (
                   <XCircle className="w-6 h-6 text-red-500" />
                 )}
                 <div className="flex-1">
                   <p className={`font-semibold ${
-                    connectionStatus === "connected" ? "text-green-800" : "text-blue-800"
+                    connectionStatus === "connected" ? "text-green-800"
+                    : connectionStatus === "stopped" ? "text-amber-800"
+                    : connectionStatus === "error" ? "text-red-800"
+                    : "text-blue-800"
                   }`}>
                     {connectionStatus === "connected" && "✅ الجلسة متصلة"}
+                    {connectionStatus === "stopped" && "⏸️ الجلسة متوقفة"}
                     {connectionStatus === "creating" && "جاري إنشاء الجلسة..."}
+                    {connectionStatus === "starting" && "جاري بدء الجلسة..."}
+                    {connectionStatus === "stopping" && "جاري إيقاف الجلسة..."}
                     {connectionStatus === "waiting_qr" && "امسح QR code بهاتفك"}
                     {connectionStatus === "connecting" && "جاري الاتصال..."}
                     {connectionStatus === "error" && "خطأ في الاتصال"}
@@ -292,6 +364,15 @@ export default function WhatsAppPage() {
                     className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors"
                   >
                     قطع الاتصال
+                  </button>
+                )}
+                {connectionStatus === "stopped" && (
+                  <button
+                    onClick={handleStartSession}
+                    className="flex items-center gap-1 text-xs font-medium text-green-600 hover:text-green-800 transition-colors"
+                  >
+                    <Play className="w-3.5 h-3.5" />
+                    تشغيل
                   </button>
                 )}
               </div>
@@ -398,9 +479,39 @@ export default function WhatsAppPage() {
           )}
 
           <div className="mt-6 flex flex-wrap gap-3">
+            {(connectionStatus === "stopped" || connectionStatus === "starting") && (
+              <button
+                onClick={handleStartSession}
+                disabled={connectionStatus === "starting"}
+                className="flex items-center gap-2 rounded-xl bg-green-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-green-700 transition-all shadow-sm disabled:opacity-50"
+              >
+                {connectionStatus === "starting" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                بدء الجلسة
+              </button>
+            )}
+
+            {(connectionStatus === "connected" || connectionStatus === "stopping") && (
+              <button
+                onClick={handleStopSession}
+                disabled={connectionStatus === "stopping"}
+                className="flex items-center gap-2 rounded-xl bg-red-500 text-white px-5 py-2.5 text-sm font-semibold hover:bg-red-600 transition-all shadow-sm disabled:opacity-50"
+              >
+                {connectionStatus === "stopping" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Square className="w-4 h-4" />
+                )}
+                إيقاف الجلسة
+              </button>
+            )}
+
             <button
               onClick={handleCreateSession}
-              disabled={connectionStatus === "creating" || connectionStatus === "waiting_qr" || connectionStatus === "connecting"}
+              disabled={connectionStatus === "creating" || connectionStatus === "waiting_qr" || connectionStatus === "connecting" || connectionStatus === "starting"}
               className="flex items-center gap-2 rounded-xl bg-brand-navy text-white px-6 py-2.5 text-sm font-semibold hover:bg-brand-navy-text transition-all shadow-sm disabled:opacity-50"
             >
               {(connectionStatus === "creating" || connectionStatus === "connecting") ? (
