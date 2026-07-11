@@ -82,7 +82,7 @@ export async function createOpenWASession(
     throw new OpenWAError("Failed to resolve or create session ID");
   }
 
-  // Start the session
+  // Start the session (skip if already started)
   const startRes = await openwaFetch(baseUrl, `/api/sessions/${sid}/start`, {
     method: "POST",
     headers: { "X-API-Key": token, "Content-Type": "application/json" },
@@ -91,7 +91,11 @@ export async function createOpenWASession(
 
   if (!startRes.ok) {
     const text = await startRes.text().catch(() => "unknown error");
-    throw new OpenWAError(`OpenWA start error (${startRes.status}): ${text}`, startRes.status);
+    if (text.includes("already started")) {
+      // Session is already running — that's fine
+    } else {
+      throw new OpenWAError(`OpenWA start error (${startRes.status}): ${text}`, startRes.status);
+    }
   }
 
   if (projectId) {
@@ -203,7 +207,9 @@ export async function startOpenWASession(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "unknown error");
-    throw new OpenWAError(`OpenWA start error (${res.status}): ${text}`, res.status);
+    if (!text.includes("already started")) {
+      throw new OpenWAError(`OpenWA start error (${res.status}): ${text}`, res.status);
+    }
   }
 }
 
