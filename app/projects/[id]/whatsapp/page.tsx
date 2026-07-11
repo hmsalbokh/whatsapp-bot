@@ -48,6 +48,7 @@ export default function WhatsAppPage() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrError, setQrError] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [rawStatus, setRawStatus] = useState("");
 
   const [form, setForm] = useState({
     baseUrl: "",
@@ -166,11 +167,17 @@ export default function WhatsAppPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
         });
+        if (!res.ok) {
+          setRawStatus("check_error");
+          return;
+        }
         const data = await res.json();
-        if (!data.success) return;
 
-        const connectedStatuses = ["connected", "active", "started", "working", "pairing"];
-        if (connectedStatuses.includes(data.status?.toLowerCase())) {
+        const s = (data.status ?? "").toLowerCase();
+        setRawStatus(s || "unknown");
+
+        const connectedStatuses = ["connected", "active", "started", "working", "pairing", "default"];
+        if (connectedStatuses.includes(s)) {
           setConnectionStatus("connected");
           if (data.phone) setPhoneNumber(data.phone);
           if (qrPollRef.current) clearInterval(qrPollRef.current);
@@ -178,12 +185,12 @@ export default function WhatsAppPage() {
           return;
         }
 
-        if (data.status === "connecting" || data.status === "scanning" || data.status === "waiting_for_scan") {
+        if (s === "connecting" || s === "scanning" || s === "waiting_for_scan" || s === "qr") {
           setConnectionStatus("waiting_qr");
           fetchQRCode();
         }
       } catch {
-        // ignore polling errors
+        setRawStatus("poll_error");
       }
     }, 3000);
   }
@@ -356,6 +363,11 @@ export default function WhatsAppPage() {
                   {phoneNumber && (
                     <p className="text-sm text-green-600 mt-0.5" dir="ltr">
                       {phoneNumber}
+                    </p>
+                  )}
+                  {rawStatus && connectionStatus !== "connected" && connectionStatus !== "error" && (
+                    <p className="text-[10px] text-slate-400 mt-0.5 font-mono" dir="ltr">
+                      {rawStatus}
                     </p>
                   )}
                 </div>
