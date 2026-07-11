@@ -176,10 +176,14 @@ export default function WhatsAppPage() {
         const s = (data.status ?? "").toLowerCase();
         setRawStatus(s || "unknown");
 
-        const connectedStatuses = ["connected", "active", "started", "working", "pairing", "default"];
-        if (connectedStatuses.includes(s)) {
+        // Phone number present = definitely connected
+        if (data.phone) {
+          setPhoneNumber(data.phone);
+        }
+
+        const connectedStatuses = ["connected", "active", "started", "working", "pairing", "default", "running"];
+        if (connectedStatuses.includes(s) || data.phone) {
           setConnectionStatus("connected");
-          if (data.phone) setPhoneNumber(data.phone);
           if (qrPollRef.current) clearInterval(qrPollRef.current);
           handleSave();
           return;
@@ -206,6 +210,29 @@ export default function WhatsAppPage() {
       if (data.qr) setQrCode(data.qr);
     } catch {
       setQrError("تعذر الحصول على QR code");
+    }
+  }
+
+  async function checkStatusOnce() {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/whatsapp-session/check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) { setRawStatus("check_error"); return; }
+      const data = await res.json();
+      const s = (data.status ?? "").toLowerCase();
+      setRawStatus(s || "unknown");
+      if (data.phone) setPhoneNumber(data.phone);
+      const connectedStatuses = ["connected", "active", "started", "working", "pairing", "default", "running"];
+      if (connectedStatuses.includes(s) || data.phone) {
+        setConnectionStatus("connected");
+        if (qrPollRef.current) clearInterval(qrPollRef.current);
+        handleSave();
+      }
+    } catch {
+      setRawStatus("poll_error");
     }
   }
 
@@ -367,7 +394,13 @@ export default function WhatsAppPage() {
                   )}
                   {rawStatus && connectionStatus !== "connected" && connectionStatus !== "error" && (
                     <p className="text-[10px] text-slate-400 mt-0.5 font-mono" dir="ltr">
-                      {rawStatus}
+                      {rawStatus !== "unknown" ? rawStatus : "⚠️ غير معروف"}
+                      <button
+                        onClick={checkStatusOnce}
+                        className="mr-2 text-[10px] text-brand-navy hover:underline"
+                      >
+                        تحديث
+                      </button>
                     </p>
                   )}
                 </div>
