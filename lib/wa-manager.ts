@@ -53,35 +53,51 @@ export async function createOpenWASession(
   sessionName: string,
   projectId?: string
 ): Promise<{ sessionId: string; qr?: string }> {
-  const res1 = await openwaFetch(baseUrl, "/api/sessions", {
-    method: "POST",
-    headers: { "X-API-Key": token, "Content-Type": "application/json" },
-    body: JSON.stringify({ name: sessionName }),
-  });
+  // Check if session already exists
+  let sid: string | undefined;
+  try {
+    const existing = await resolveSessionId(baseUrl, token, sessionName);
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidPattern.test(existing)) sid = existing;
+  } catch {}
 
-  if (!res1.ok) {
-    const text = await res1.text().catch(() => "unknown error");
-    throw new OpenWAError(`OpenWA create error (${res1.status}): ${text}`, res1.status);
+  if (!sid) {
+    // Create new session
+    const res = await openwaFetch(baseUrl, "/api/sessions", {
+      method: "POST",
+      headers: { "X-API-Key": token, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: sessionName }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "unknown error");
+      throw new OpenWAError(`OpenWA create error (${res.status}): ${text}`, res.status);
+    }
+
+    const created = await res.json();
+    sid = created.id ?? created.sessionId;
   }
 
-  const created = await res1.json();
-  const uuid = created.id ?? created.sessionId;
+  if (!sid) {
+    throw new OpenWAError("Failed to resolve or create session ID");
+  }
 
-  const res2 = await openwaFetch(baseUrl, `/api/sessions/${uuid}/start`, {
+  // Start the session
+  const startRes = await openwaFetch(baseUrl, `/api/sessions/${sid}/start`, {
     method: "POST",
     headers: { "X-API-Key": token, "Content-Type": "application/json" },
     body: "{}",
   });
 
-  if (!res2.ok) {
-    const text = await res2.text().catch(() => "unknown error");
-    throw new OpenWAError(`OpenWA start error (${res2.status}): ${text}`, res2.status);
+  if (!startRes.ok) {
+    const text = await startRes.text().catch(() => "unknown error");
+    throw new OpenWAError(`OpenWA start error (${startRes.status}): ${text}`, startRes.status);
   }
 
   if (projectId) {
     const webhookUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/api/openwa/webhook?projectId=${projectId}`;
     if (webhookUrl.startsWith("http")) {
-      await openwaFetch(baseUrl, `/api/sessions/${uuid}/webhooks`, {
+      await openwaFetch(baseUrl, `/api/sessions/${sid}/webhooks`, {
         method: "POST",
         headers: { "X-API-Key": token, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -96,7 +112,7 @@ export async function createOpenWASession(
   let qr: string | undefined;
   for (let i = 0; i < 15; i++) {
     await new Promise((r) => setTimeout(r, 1000));
-    const qrRes = await openwaFetch(baseUrl, `/api/sessions/${uuid}/qr`, {
+    const qrRes = await openwaFetch(baseUrl, `/api/sessions/${sid}/qr`, {
       headers: { "X-API-Key": token },
     });
     if (qrRes.ok) {
@@ -112,7 +128,7 @@ export async function createOpenWASession(
     }
   }
 
-  return { sessionId: uuid, qr };
+  return { sessionId: sid as string, qr };
 }
 
 export async function getOpenWAQR(

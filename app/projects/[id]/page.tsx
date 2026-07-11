@@ -46,7 +46,8 @@ function StatusBadge({ session, projectId }: { session: SessionData | null; proj
     })
       .then((r) => r.json())
       .then((data) => {
-        setLiveStatus(data.status === "connected" || data.status === "active" ? "connected" : "stopped");
+        const connected = ["connected", "active", "started", "working", "pairing"];
+        setLiveStatus(connected.includes(data.status?.toLowerCase()) ? "connected" : "stopped");
       })
       .catch(() => setLiveStatus("stopped"))
       .finally(() => setChecking(false));

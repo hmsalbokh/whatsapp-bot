@@ -169,7 +169,8 @@ export default function WhatsAppPage() {
         const data = await res.json();
         if (!data.success) return;
 
-        if (data.status === "connected" || data.status === "active") {
+        const connectedStatuses = ["connected", "active", "started", "working", "pairing"];
+        if (connectedStatuses.includes(data.status?.toLowerCase())) {
           setConnectionStatus("connected");
           if (data.phone) setPhoneNumber(data.phone);
           if (qrPollRef.current) clearInterval(qrPollRef.current);
