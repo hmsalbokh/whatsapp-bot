@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import { createClient } from "@/lib/supabase/server";
-import { requireProjectAccess, requireAdminAccess } from "@/lib/api-guard";
+import { requireProjectAccess } from "@/lib/api-guard";
 
 export async function GET(
   _request: Request,
@@ -52,7 +52,7 @@ export async function POST(
     const { data: { user } } = await s.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const access = await requireAdminAccess(user.id, projectId);
+    const access = await requireProjectAccess(user.id, projectId);
 
     const body = await request.json();
     const { provider, phoneNumberId, webhookSecret, config, isActive } = body;
@@ -61,9 +61,17 @@ export async function POST(
 
     const { data: existing } = await admin
       .from("whatsapp_sessions")
-      .select("id")
+      .select("id, config")
       .eq("project_id", projectId)
-      .maybeSingle() as unknown as { data: { id: string } | null };
+      .maybeSingle() as unknown as { data: { id: string; config: Record<string, unknown> } | null };
+
+    let mergedConfig = config ?? {};
+    if (access.role !== "admin" && existing?.config) {
+      mergedConfig = {
+        ...(existing.config as Record<string, unknown>),
+        sessionName: mergedConfig.sessionName ?? (existing.config as Record<string, unknown>).sessionName,
+      };
+    }
 
     let result;
     if (existing) {
@@ -73,7 +81,7 @@ export async function POST(
           provider: provider ?? "openwa",
           phone_number_id: phoneNumberId ?? null,
           webhook_secret: webhookSecret ?? null,
-          config: config ?? {},
+          config: mergedConfig,
           is_active: isActive ?? true,
         } as never)
         .eq("id", existing.id)
@@ -89,7 +97,7 @@ export async function POST(
           provider: provider ?? "openwa",
           phone_number_id: phoneNumberId ?? null,
           webhook_secret: webhookSecret ?? null,
-          config: config ?? {},
+          config: mergedConfig,
           is_active: isActive ?? true,
         } as never)
         .select()
