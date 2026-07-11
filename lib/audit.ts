@@ -21,7 +21,7 @@ export async function logAudit(params: AuditParams): Promise<void> {
     entity_id: params.entityId ?? null,
     changes: params.changes ?? null,
     ip_address: params.ipAddress ?? null,
-  } as never);
+  } as any);
 
   if (error) {
     console.error("[audit] failed to log", params.action, error.message);

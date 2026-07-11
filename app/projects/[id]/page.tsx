@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Wifi, WifiOff, Loader2, ExternalLink } from "lucide-react";
+import { Wifi, WifiOff, Loader2, ExternalLink, MessageCircle, BookOpen, Smartphone, Users2, BarChart3, Settings } from "lucide-react";
+import { PageSkeleton, ErrorState } from "@/components/ui";
 
 interface Project {
   id: string;
@@ -134,11 +135,17 @@ export default function ProjectPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
+  const fetchProject = useCallback(() => {
+    setLoading(true);
+    setError(null);
     Promise.all([
-      fetch(`/api/projects/${id}`).then((r) => r.json()),
+      fetch(`/api/projects/${id}`).then((r) => {
+        if (!r.ok) throw new Error("فشل تحميل المشروع");
+        return r.json();
+      }),
       fetch(`/api/projects/${id}/whatsapp-session`).then((r) => r.json()),
     ])
       .then(([projectData, sessionData]) => {
@@ -149,14 +156,30 @@ export default function ProjectPage() {
         setProject(projectData.project);
         setSession(sessionData.session ?? null);
       })
-      .catch((err) => console.error("Failed to load project:", err instanceof Error ? err.message : String(err)))
+      .catch((err) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
   }, [id, router]);
 
+  useEffect(() => { fetchProject(); }, [fetchProject]);
+
   if (loading) {
+    return <PageSkeleton />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-gray-400">جاري التحميل...</p>
+      <div className="mx-auto max-w-3xl px-4 py-8">
+        <ErrorState
+          description={error}
+          action={
+            <button
+              onClick={fetchProject}
+              className="rounded-lg bg-brand-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-navy-light cursor-pointer"
+            >
+              إعادة المحاولة
+            </button>
+          }
+        />
       </div>
     );
   }
@@ -178,9 +201,11 @@ export default function ProjectPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           href={`/projects/${id}/chat`}
-          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-blue-200"
+          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-brand-navy/20"
         >
-          <p className="text-3xl mb-2">💬</p>
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-navy/5 mb-3">
+            <MessageCircle className="w-5 h-5 text-brand-navy" />
+          </div>
           <p className="font-semibold text-gray-800 mb-1">محاكي المحادثة</p>
           <p className="text-xs text-gray-500">
             اختبر البوت وأرسل رسائل تجريبية
@@ -189,9 +214,11 @@ export default function ProjectPage() {
 
         <Link
           href={`/projects/${id}/knowledge`}
-          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-blue-200"
+          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-brand-navy/20"
         >
-          <p className="text-3xl mb-2">📚</p>
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-navy/5 mb-3">
+            <BookOpen className="w-5 h-5 text-brand-navy" />
+          </div>
           <p className="font-semibold text-gray-800 mb-1">قاعدة المعرفة</p>
           <p className="text-xs text-gray-500">
             أضف الأسئلة والإجابات الشائعة
@@ -200,9 +227,11 @@ export default function ProjectPage() {
 
         <Link
           href={`/projects/${id}/whatsapp`}
-          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-blue-200"
+          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-brand-navy/20"
         >
-          <p className="text-3xl mb-2">📱</p>
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-navy/5 mb-3">
+            <Smartphone className="w-5 h-5 text-brand-navy" />
+          </div>
           <p className="font-semibold text-gray-800 mb-1">ربط واتساب</p>
           <p className="text-xs text-gray-500">
             ربط رقم الجوال وتفعيل الجلسة
@@ -211,9 +240,11 @@ export default function ProjectPage() {
 
         <Link
           href={`/projects/${id}/handoffs`}
-          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-blue-200"
+          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-brand-navy/20"
         >
-          <p className="text-3xl mb-2">👤</p>
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-navy/5 mb-3">
+            <Users2 className="w-5 h-5 text-brand-navy" />
+          </div>
           <p className="font-semibold text-gray-800 mb-1">الدعم البشري</p>
           <p className="text-xs text-gray-500">
             إدارة طلبات تحويل المحادثات
@@ -222,9 +253,11 @@ export default function ProjectPage() {
 
         <Link
           href={`/projects/${id}/monitoring`}
-          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-blue-200"
+          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-brand-navy/20"
         >
-          <p className="text-3xl mb-2">📊</p>
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-navy/5 mb-3">
+            <BarChart3 className="w-5 h-5 text-brand-navy" />
+          </div>
           <p className="font-semibold text-gray-800 mb-1">المراقبة</p>
           <p className="text-xs text-gray-500">
             الأخطاء وإعادة المحاولة
@@ -233,9 +266,11 @@ export default function ProjectPage() {
 
         <Link
           href={`/projects/${id}/settings`}
-          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-blue-200"
+          className="rounded-xl border bg-white p-6 text-right shadow-sm transition hover:shadow-md hover:border-brand-navy/20"
         >
-          <p className="text-3xl mb-2">⚙️</p>
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-navy/5 mb-3">
+            <Settings className="w-5 h-5 text-brand-navy" />
+          </div>
           <p className="font-semibold text-gray-800 mb-1">الإعدادات</p>
           <p className="text-xs text-gray-500">
             الملف التجاري وإعدادات البوت

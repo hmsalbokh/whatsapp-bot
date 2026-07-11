@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { ErrorState } from "@/components/ui";
 
 interface TenantSubscription {
   status: string;
@@ -27,14 +28,23 @@ interface TenantEntry {
 export default function AdminTenantsPage() {
   const [tenants, setTenants] = useState<TenantEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
+  const fetchTenants = useCallback(() => {
+    setLoading(true);
+    setError(null);
     fetch("/api/admin/tenants")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("فشل تحميل الشركات");
+        return r.json();
+      })
       .then((data) => setTenants(data.tenants ?? []))
+      .catch((err) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchTenants(); }, [fetchTenants]);
 
   const filtered = tenants.filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -57,6 +67,25 @@ export default function AdminTenantsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900">الشركات والمشاريع</h1>
+        <ErrorState
+          description={error}
+          action={
+            <button
+              onClick={fetchTenants}
+              className="rounded-lg bg-brand-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-navy-light cursor-pointer"
+            >
+              إعادة المحاولة
+            </button>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -69,9 +98,10 @@ export default function AdminTenantsPage() {
         <input
           type="text"
           placeholder="بحث..."
+          aria-label="بحث عن شركة"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-64 rounded-xl border border-gray-300 px-4 py-2 text-sm outline-none focus:border-blue-500"
+          className="w-64 rounded-xl border border-gray-300 px-4 py-2 text-sm outline-none focus:border-brand-navy focus:ring-1 focus:ring-brand-navy/40"
         />
       </div>
 

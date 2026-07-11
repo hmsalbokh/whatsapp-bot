@@ -1,3 +1,5 @@
+import { AlertCircle } from "lucide-react";
+
 export function CardSkeleton() {
   return (
     <div className="animate-pulse rounded-xl border bg-white p-5">
@@ -55,6 +57,35 @@ export function EmptyState({
         <div className="flex justify-center mb-4">{icon}</div>
         <h3 className="text-lg font-semibold text-gray-800 mb-1">{title}</h3>
         <p className="text-sm text-gray-500 mb-4">{description}</p>
+        {action}
+      </div>
+    </div>
+  );
+}
+
+export function ErrorState({
+  title,
+  description,
+  action,
+}: {
+  title?: string;
+  description?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-center min-h-[40vh]">
+      <div className="text-center max-w-md">
+        <div className="flex justify-center mb-4">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-50">
+            <AlertCircle className="w-6 h-6 text-red-500" />
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-1">
+          {title || "حدث خطأ"}
+        </h3>
+        <p className="text-sm text-gray-500 mb-4">
+          {description || "تعذر تحميل البيانات. يرجى المحاولة مرة أخرى."}
+        </p>
         {action}
       </div>
     </div>

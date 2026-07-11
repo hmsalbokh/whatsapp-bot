@@ -1,6 +1,8 @@
 import type { ToolDefinition, ToolHandler } from "@/types";
-import { createMockTicket } from "@/lib/mock-data";
+import { getServiceClient } from "@/lib/supabase";
 import { z } from "zod";
+
+function getSupabase() { return getServiceClient(); }
 
 const paramsSchema = z.object({
   customer_name: z.string().min(1, "customer_name is required"),
@@ -35,7 +37,7 @@ export const definition: ToolDefinition = {
   },
 };
 
-export const handler: ToolHandler = (args) => {
+export const handler: ToolHandler = async (args, context) => {
   const parsed = paramsSchema.safeParse(args);
   if (!parsed.success) {
     return {
@@ -44,17 +46,32 @@ export const handler: ToolHandler = (args) => {
     };
   }
 
-  const ticket = createMockTicket(
-    parsed.data.customer_name,
-    parsed.data.issue,
-    parsed.data.priority
-  );
+  const { data: created, error } = await getSupabase()
+    .from("support_tickets")
+    .insert({
+      project_id: context?.projectId ?? null,
+      customer_name: parsed.data.customer_name,
+      issue: parsed.data.issue,
+      priority: parsed.data.priority,
+      status: "open",
+    } as any)
+    .select("id")
+    .single();
+
+  if (error || !created) {
+    return {
+      status: "error",
+      message: "حدث خطأ أثناء إنشاء التذكرة. الرجاء المحاولة مرة أخرى.",
+    };
+  }
+
+  const ticketId = (created as unknown as { id: string }).id;
 
   return {
     status: "success",
     data: {
-      ticketId: ticket.id,
-      message: `تم إنشاء تذكرة دعم برقم ${ticket.id}. سيتم التواصل معك قريبًا.`,
+      ticketId,
+      message: `تم إنشاء تذكرة دعم برقم ${ticketId}. سيتم التواصل معك قريبًا.`,
     },
   };
 };

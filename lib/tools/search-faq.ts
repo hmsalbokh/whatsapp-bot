@@ -1,6 +1,8 @@
 import type { ToolDefinition, ToolHandler } from "@/types";
-import { searchFaq } from "@/lib/mock-data";
+import { getServiceClient } from "@/lib/supabase";
 import { z } from "zod";
+
+function getSupabase() { return getServiceClient(); }
 
 const paramsSchema = z.object({
   query: z.string().min(1, "query is required"),
@@ -24,7 +26,7 @@ export const definition: ToolDefinition = {
   },
 };
 
-export const handler: ToolHandler = (args) => {
+export const handler: ToolHandler = async (args) => {
   const parsed = paramsSchema.safeParse(args);
   if (!parsed.success) {
     return {
@@ -33,9 +35,28 @@ export const handler: ToolHandler = (args) => {
     };
   }
 
-  const results = searchFaq(parsed.data.query);
+  const q = parsed.data.query.toLowerCase();
 
-  if (results.length === 0) {
+  const { data: results } = await getSupabase()
+    .from("knowledge_items")
+    .select("question, answer, category, keywords")
+    .eq("is_active", true);
+
+  const rows = (results ?? []) as unknown as {
+    question: string;
+    answer: string;
+    category: string | null;
+    keywords: string[];
+  }[];
+
+  const matched = rows.filter(
+    (r) =>
+      r.question.toLowerCase().includes(q) ||
+      (r.keywords ?? []).some((k) => k.toLowerCase().includes(q)) ||
+      r.answer.toLowerCase().includes(q)
+  );
+
+  if (matched.length === 0) {
     return {
       status: "success",
       data: {
@@ -49,10 +70,10 @@ export const handler: ToolHandler = (args) => {
     status: "success",
     data: {
       found: true,
-      results: results.map((r) => ({
+      results: matched.map((r) => ({
         question: r.question,
         answer: r.answer,
-        category: r.category,
+        category: r.category ?? "",
       })),
     },
   };

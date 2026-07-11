@@ -1,51 +1,5 @@
-export class OpenWAError extends Error {
-  constructor(
-    message: string,
-    public status?: number
-  ) {
-    super(message);
-    this.name = "OpenWAError";
-  }
-}
-
-async function openwaFetch(
-  baseUrl: string,
-  path: string,
-  options?: RequestInit
-): Promise<Response> {
-  return fetch(`${baseUrl.replace(/\/+$/, "")}${path}`, options);
-}
-
-async function resolveSessionId(
-  baseUrl: string,
-  token: string,
-  sessionNameOrId: string
-): Promise<string> {
-  // Try as UUID first
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (uuidPattern.test(sessionNameOrId)) return sessionNameOrId;
-
-  // Try direct lookup by name
-  const directRes = await openwaFetch(baseUrl, `/api/sessions/${encodeURIComponent(sessionNameOrId)}`, {
-    headers: { "X-API-Key": token },
-  });
-  if (directRes.ok) {
-    const data = await directRes.json();
-    return data.id ?? data.sessionId ?? sessionNameOrId;
-  }
-
-  // Fallback: list all sessions and find by name
-  const listRes = await openwaFetch(baseUrl, "/api/sessions", {
-    headers: { "X-API-Key": token },
-  });
-  if (listRes.ok) {
-    const list = await listRes.json() as Array<{ id: string; name: string }>;
-    const found = list.find((s) => s.name === sessionNameOrId);
-    if (found) return found.id;
-  }
-
-  return sessionNameOrId;
-}
+import { OpenWAError } from "@/lib/integrations/openwa/errors";
+import { openwaFetch, resolveSessionId } from "@/lib/integrations/openwa/utils";
 
 export async function createOpenWASession(
   baseUrl: string,

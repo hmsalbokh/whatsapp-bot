@@ -1,15 +1,3 @@
-export interface IncomingMessage {
-  from: string;
-  body: string;
-  messageId?: string;
-  timestamp?: number;
-}
-
-export interface OutgoingMessage {
-  to: string;
-  text: string;
-}
-
 export interface ConversationMessage {
   role: "system" | "user" | "assistant" | "tool";
   content: string;
@@ -65,68 +53,7 @@ export type ToolHandler = (
   context?: ToolContext
 ) => ToolResult | Promise<ToolResult>;
 
-export interface MemoryEntry {
-  messages: ConversationMessage[];
-  handoffRequested: boolean;
-  handoffReason?: string;
-}
-
-export interface Ticket {
-  id: string;
-  customerName: string;
-  issue: string;
-  priority: "low" | "medium" | "high";
-  status: "open" | "in_progress" | "resolved";
-  createdAt: string;
-}
-
-export interface Order {
-  id: string;
-  customerName: string;
-  items: string[];
-  total: number;
-  status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface FaqEntry {
-  id: string;
-  question: string;
-  answer: string;
-  keywords: string[];
-  category: string;
-}
-
-export interface DbConversation {
-  id: string;
-  customer_phone: string;
-  customer_name: string | null;
-  bot_enabled: boolean;
-  human_handoff: boolean;
-  assigned_agent: string | null;
-  last_message_at: string | null;
-  last_inbound_at: string | null;
-  last_outbound_at: string | null;
-  bot_paused_until: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DbMessage {
-  id: string;
-  conversation_id: string;
-  external_message_id: string | null;
-  direction: "inbound" | "outbound";
-  role: "user" | "assistant" | "system" | "admin" | "tool";
-  message_type: string;
-  status: string | null;
-  content: string;
-  raw_payload: unknown;
-  created_at: string;
-}
-
-// ---- Phase 2: Multi-Tenant Types ----
+// ---- Multi-Tenant Types ----
 
 export interface DbTenant {
   id: string;

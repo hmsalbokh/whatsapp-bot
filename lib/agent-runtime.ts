@@ -1,4 +1,6 @@
-import { getMessages } from "@/lib/memory";
+import { getMessages, addMessage } from "@/lib/memory";
+import { getProjectTenant } from "@/lib/db/projects";
+import { getServiceClient } from "@/lib/supabase";
 import { chat, OpenRouterError } from "@/lib/openrouter";
 import { buildPrompt, generateSystemPrompt } from "@/lib/prompt-builder";
 import { normalizeResponse } from "@/lib/response-normalizer";
@@ -32,14 +34,7 @@ export async function buildAgentMessages(
   ];
 
   const projectSettings = await getProjectSettings(projectId);
-  const { getServiceClient } = await import("@/lib/supabase");
-  const admin = getServiceClient();
-  const { data: tenantData } = await admin
-    .from("project_profiles")
-    .select("tenant_id")
-    .eq("id", projectId)
-    .single();
-  const tenantId = (tenantData as unknown as { tenant_id: string } | null)?.tenant_id ?? "";
+  const { tenant_id: tenantId } = await getProjectTenant(projectId);
 
   return {
     messages,
@@ -58,7 +53,6 @@ interface ProjectSettings {
 async function getProjectSettings(
   projectId: string
 ): Promise<ProjectSettings> {
-  const { getServiceClient } = await import("@/lib/supabase");
   const admin = getServiceClient();
 
   const { data } = await admin
@@ -118,7 +112,6 @@ export async function processWithTools(
         })),
       };
       messages.push(assistantMsg);
-      const { addMessage } = await import("@/lib/memory");
       await addMessage(projectId, phone, assistantMsg);
 
       for (const toolCall of message.tool_calls) {
@@ -144,7 +137,6 @@ export async function processWithTools(
         content: text,
       };
       messages.push(assistantMsg);
-      const { addMessage } = await import("@/lib/memory");
       await addMessage(projectId, phone, assistantMsg);
 
       logAudit({

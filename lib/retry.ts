@@ -20,7 +20,7 @@ export async function logFailedJob(params: {
       attempt: params.attempt ?? 1,
       max_attempts: params.maxAttempts ?? 3,
       last_attempt_at: new Date().toISOString(),
-    } as never)
+    } as any)
     .select("id")
     .single();
 

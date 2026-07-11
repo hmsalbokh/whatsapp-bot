@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { ListSkeleton, ErrorState } from "@/components/ui";
+import { Building2 } from "lucide-react";
 
 interface Project {
   id: string;
@@ -15,20 +17,46 @@ interface Project {
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
+  const fetchProjects = useCallback(() => {
+    setLoading(true);
+    setError(null);
     fetch("/api/projects")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("فشل تحميل المشاريع");
+        return r.json();
+      })
       .then((data) => setProjects(data.projects ?? []))
-      .catch((err) => console.error("Failed to load projects:", err instanceof Error ? err.message : String(err)))
+      .catch((err) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => { fetchProjects(); }, [fetchProjects]);
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-gray-400">جاري التحميل...</p>
+      <div className="mx-auto max-w-4xl px-4 py-8">
+        <ListSkeleton count={4} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8">
+        <ErrorState
+          description={error}
+          action={
+            <button
+              onClick={fetchProjects}
+              className="rounded-lg bg-brand-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-navy-light cursor-pointer"
+            >
+              إعادة المحاولة
+            </button>
+          }
+        />
       </div>
     );
   }
@@ -37,7 +65,11 @@ export default function ProjectsPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center max-w-md">
-          <p className="text-5xl mb-4">🚀</p>
+          <div className="flex justify-center mb-4">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-brand-navy/5">
+              <Building2 className="w-7 h-7 text-brand-navy" />
+            </div>
+          </div>
           <h2 className="text-xl font-bold text-gray-800 mb-2">
             مرحباً بك في منصة WhatsApp Bot
           </h2>
@@ -46,7 +78,7 @@ export default function ProjectsPage() {
           </p>
           <button
             onClick={() => router.push("/projects/new")}
-            className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-lg bg-brand-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-navy-light cursor-pointer"
           >
             + إنشاء مشروع جديد
           </button>
@@ -61,7 +93,7 @@ export default function ProjectsPage() {
         <h1 className="text-xl font-bold text-gray-800">المشاريع</h1>
         <button
           onClick={() => router.push("/projects/new")}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:bg-brand-navy-light cursor-pointer"
         >
           + مشروع جديد
         </button>
@@ -72,11 +104,11 @@ export default function ProjectsPage() {
           <button
             key={project.id}
             onClick={() => router.push(`/projects/${project.id}`)}
-            className="rounded-xl border bg-white p-5 text-right shadow-sm transition hover:shadow-md hover:border-blue-200"
+            className="rounded-xl border bg-white p-5 text-right shadow-sm transition hover:shadow-md hover:border-brand-navy/20 cursor-pointer"
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-lg">
-                🏢
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-navy/5">
+                <Building2 className="w-5 h-5 text-brand-navy" />
               </div>
               <div>
                 <p className="font-semibold text-gray-800">{project.name}</p>

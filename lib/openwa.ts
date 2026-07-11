@@ -1,12 +1,5 @@
-export class OpenWAError extends Error {
-  constructor(
-    message: string,
-    public status?: number
-  ) {
-    super(message);
-    this.name = "OpenWAError";
-  }
-}
+import { OpenWAError } from "@/lib/integrations/openwa/errors";
+import { resolveSessionId } from "@/lib/integrations/openwa/utils";
 
 async function getSessionConfig(projectId?: string, sessionIdOverride?: string): Promise<{
   baseUrl: string;
@@ -47,34 +40,6 @@ async function getSessionConfig(projectId?: string, sessionIdOverride?: string):
   }
 
   return { baseUrl, token, sessionId };
-}
-
-async function resolveSessionId(
-  baseUrl: string,
-  token: string,
-  sessionNameOrId: string
-): Promise<string> {
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (uuidPattern.test(sessionNameOrId)) return sessionNameOrId;
-
-  const directRes = await fetch(`${baseUrl}/api/sessions/${encodeURIComponent(sessionNameOrId)}`, {
-    headers: { "X-API-Key": token },
-  });
-  if (directRes.ok) {
-    const data = await directRes.json();
-    return data.id ?? data.sessionId ?? sessionNameOrId;
-  }
-
-  const listRes = await fetch(`${baseUrl}/api/sessions`, {
-    headers: { "X-API-Key": token },
-  });
-  if (listRes.ok) {
-    const list = await listRes.json() as Array<{ id: string; name: string }>;
-    const found = list.find((s) => s.name === sessionNameOrId);
-    if (found) return found.id;
-  }
-
-  return sessionNameOrId;
 }
 
 export async function sendMessage(

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { ErrorState } from "@/components/ui";
 
 interface AdminSubscription {
   id: string;
@@ -18,13 +19,22 @@ interface AdminSubscription {
 export default function AdminSubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<AdminSubscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchSubscriptions = useCallback(() => {
+    setLoading(true);
+    setError(null);
     fetch("/api/admin/subscriptions")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("فشل تحميل الاشتراكات");
+        return r.json();
+      })
       .then((data) => setSubscriptions(data.subscriptions ?? []))
+      .catch((err) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchSubscriptions(); }, [fetchSubscriptions]);
 
   const statusLabels: Record<string, string> = {
     active: "نشط",
@@ -54,6 +64,25 @@ export default function AdminSubscriptionsPage() {
             </div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900">الاشتراكات</h1>
+        <ErrorState
+          description={error}
+          action={
+            <button
+              onClick={fetchSubscriptions}
+              className="rounded-lg bg-brand-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-navy-light cursor-pointer"
+            >
+              إعادة المحاولة
+            </button>
+          }
+        />
       </div>
     );
   }
@@ -91,11 +120,11 @@ export default function AdminSubscriptionsPage() {
         <table className="w-full text-right text-sm">
           <thead>
             <tr className="border-b bg-gray-50">
-              <th className="px-4 py-3 font-medium text-gray-600">الشركة</th>
-              <th className="px-4 py-3 font-medium text-gray-600">الخطة</th>
-              <th className="px-4 py-3 font-medium text-gray-600">الحالة</th>
-              <th className="px-4 py-3 font-medium text-gray-600">تاريخ البدء</th>
-              <th className="px-4 py-3 font-medium text-gray-600">تاريخ الانتهاء</th>
+              <th scope="col" className="px-4 py-3 font-medium text-gray-600">الشركة</th>
+              <th scope="col" className="px-4 py-3 font-medium text-gray-600">الخطة</th>
+              <th scope="col" className="px-4 py-3 font-medium text-gray-600">الحالة</th>
+              <th scope="col" className="px-4 py-3 font-medium text-gray-600">تاريخ البدء</th>
+              <th scope="col" className="px-4 py-3 font-medium text-gray-600">تاريخ الانتهاء</th>
             </tr>
           </thead>
           <tbody>

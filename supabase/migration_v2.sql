@@ -16,6 +16,8 @@ drop table if exists messages cascade;
 drop table if exists conversations cascade;
 drop table if exists contacts cascade;
 drop table if exists whatsapp_sessions cascade;
+drop table if exists support_tickets cascade;
+drop table if exists orders cascade;
 drop table if exists project_profiles cascade;
 drop table if exists tenant_users cascade;
 drop table if exists tenants cascade;
@@ -231,6 +233,38 @@ create table failed_jobs (
 );
 
 -- ============================================================
+-- 14. ORDERS
+-- ============================================================
+create table orders (
+    id uuid primary key default gen_random_uuid(),
+    tenant_id uuid not null references tenants(id) on delete cascade,
+    project_id uuid not null references project_profiles(id) on delete cascade,
+    contact_id uuid references contacts(id) on delete set null,
+    customer_name text not null,
+    items text[] not null default '{}',
+    total numeric(10,2) not null,
+    status text not null default 'pending' check (status in ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled')),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+-- ============================================================
+-- 15. SUPPORT TICKETS
+-- ============================================================
+create table support_tickets (
+    id uuid primary key default gen_random_uuid(),
+    tenant_id uuid not null references tenants(id) on delete cascade,
+    project_id uuid not null references project_profiles(id) on delete cascade,
+    contact_id uuid references contacts(id) on delete set null,
+    customer_name text not null,
+    issue text not null,
+    priority text not null default 'medium' check (priority in ('low', 'medium', 'high')),
+    status text not null default 'open' check (status in ('open', 'in_progress', 'resolved')),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+-- ============================================================
 -- INDEXES
 -- ============================================================
 create index if not exists idx_tenant_users_tenant on tenant_users(tenant_id);
@@ -261,6 +295,12 @@ create index if not exists idx_audit_logs_tenant on audit_logs(tenant_id);
 create index if not exists idx_audit_logs_created on audit_logs(created_at desc);
 create index if not exists idx_failed_jobs_tenant on failed_jobs(tenant_id);
 create index if not exists idx_failed_jobs_type on failed_jobs(job_type);
+create index if not exists idx_orders_project on orders(project_id);
+create index if not exists idx_orders_tenant on orders(tenant_id);
+create index if not exists idx_orders_status on orders(status);
+create index if not exists idx_support_tickets_project on support_tickets(project_id);
+create index if not exists idx_support_tickets_tenant on support_tickets(tenant_id);
+create index if not exists idx_support_tickets_status on support_tickets(status);
 
 -- ============================================================
 -- TRIGGER: auto-update updated_at
@@ -297,6 +337,12 @@ create trigger set_agent_settings_updated_at before update on agent_settings for
 drop trigger if exists set_handoff_requests_updated_at on handoff_requests;
 create trigger set_handoff_requests_updated_at before update on handoff_requests for each row execute function update_updated_at_column();
 
+drop trigger if exists set_orders_updated_at on orders;
+create trigger set_orders_updated_at before update on orders for each row execute function update_updated_at_column();
+
+drop trigger if exists set_support_tickets_updated_at on support_tickets;
+create trigger set_support_tickets_updated_at before update on support_tickets for each row execute function update_updated_at_column();
+
 -- ============================================================
 -- RLS POLICIES
 -- ============================================================
@@ -312,6 +358,8 @@ alter table agent_settings enable row level security;
 alter table webhook_events enable row level security;
 alter table handoff_requests enable row level security;
 alter table audit_logs enable row level security;
+alter table orders enable row level security;
+alter table support_tickets enable row level security;
 alter table failed_jobs enable row level security;
 
 -- Tenant users can view their own tenant
@@ -423,4 +471,24 @@ do $$ begin
     -- failed_jobs
     execute 'drop policy if exists "tenant isolation select" on failed_jobs';
     execute 'create policy "tenant isolation select" on failed_jobs for select using (tenant_id in (select tenant_id from tenant_users where user_id = auth.uid()))';
+
+    -- orders
+    execute 'drop policy if exists "tenant isolation select" on orders';
+    execute 'create policy "tenant isolation select" on orders for select using (tenant_id in (select tenant_id from tenant_users where user_id = auth.uid()))';
+    execute 'drop policy if exists "tenant isolation insert" on orders';
+    execute 'create policy "tenant isolation insert" on orders for insert with check (tenant_id in (select tenant_id from tenant_users where user_id = auth.uid()))';
+    execute 'drop policy if exists "tenant isolation update" on orders';
+    execute 'create policy "tenant isolation update" on orders for update using (tenant_id in (select tenant_id from tenant_users where user_id = auth.uid()))';
+    execute 'drop policy if exists "tenant isolation delete" on orders';
+    execute 'create policy "tenant isolation delete" on orders for delete using (tenant_id in (select tenant_id from tenant_users where user_id = auth.uid()))';
+
+    -- support_tickets
+    execute 'drop policy if exists "tenant isolation select" on support_tickets';
+    execute 'create policy "tenant isolation select" on support_tickets for select using (tenant_id in (select tenant_id from tenant_users where user_id = auth.uid()))';
+    execute 'drop policy if exists "tenant isolation insert" on support_tickets';
+    execute 'create policy "tenant isolation insert" on support_tickets for insert with check (tenant_id in (select tenant_id from tenant_users where user_id = auth.uid()))';
+    execute 'drop policy if exists "tenant isolation update" on support_tickets';
+    execute 'create policy "tenant isolation update" on support_tickets for update using (tenant_id in (select tenant_id from tenant_users where user_id = auth.uid()))';
+    execute 'drop policy if exists "tenant isolation delete" on support_tickets';
+    execute 'create policy "tenant isolation delete" on support_tickets for delete using (tenant_id in (select tenant_id from tenant_users where user_id = auth.uid()))';
 end $$;

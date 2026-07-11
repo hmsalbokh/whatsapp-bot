@@ -1,6 +1,16 @@
 import type { ToolDefinition, ToolHandler } from "@/types";
-import { findOrderById, getStatusText } from "@/lib/mock-data";
+import { getServiceClient } from "@/lib/supabase";
 import { z } from "zod";
+
+function getSupabase() { return getServiceClient(); }
+
+const STATUS_MAP: Record<string, string> = {
+  pending: "قيد الانتظار",
+  confirmed: "تم التأكيد",
+  shipped: "تم الشحن",
+  delivered: "تم التوصيل",
+  cancelled: "ملغي",
+};
 
 const paramsSchema = z.object({
   order_id: z.string().min(1, "order_id is required"),
@@ -24,7 +34,7 @@ export const definition: ToolDefinition = {
   },
 };
 
-export const handler: ToolHandler = (args) => {
+export const handler: ToolHandler = async (args) => {
   const parsed = paramsSchema.safeParse(args);
   if (!parsed.success) {
     return {
@@ -33,7 +43,12 @@ export const handler: ToolHandler = (args) => {
     };
   }
 
-  const order = findOrderById(parsed.data.order_id);
+  const { data: order } = await getSupabase()
+    .from("orders")
+    .select("id, customer_name, items, total, status, updated_at")
+    .eq("id", parsed.data.order_id)
+    .single();
+
   if (!order) {
     return {
       status: "error",
@@ -41,14 +56,23 @@ export const handler: ToolHandler = (args) => {
     };
   }
 
+  const row = order as unknown as {
+    id: string;
+    customer_name: string;
+    items: string[];
+    total: number;
+    status: string;
+    updated_at: string;
+  };
+
   return {
     status: "success",
     data: {
-      id: order.id,
-      status: getStatusText(order.status),
-      items: order.items.join("، "),
-      total: `${order.total} ريال`,
-      updatedAt: new Date(order.updatedAt).toLocaleDateString("ar-SA"),
+      id: row.id,
+      status: STATUS_MAP[row.status] ?? row.status,
+      items: row.items.join("، "),
+      total: `${row.total} ريال`,
+      updatedAt: new Date(row.updated_at).toLocaleDateString("ar-SA"),
     },
   };
 };

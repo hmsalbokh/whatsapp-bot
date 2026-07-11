@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, X, Loader2, ExternalLink } from "lucide-react";
+import { toast } from "@/components/toast";
 
 interface Registration {
   id: string;
@@ -61,11 +62,12 @@ export default function AdminRegistrationsPage() {
           prev.map((r) => (r.id === id ? { ...r, status: "approved" as const } : r))
         );
         setApprovedInfo({ email: data.userEmail, password: data.tempPassword });
+        toast("success", "تم تفعيل الحساب بنجاح");
       } else {
-        alert(data.error || "فشل الموافقة");
+        toast("error", data.error || "فشل الموافقة");
       }
     } catch {
-      alert("حدث خطأ");
+      toast("error", "حدث خطأ أثناء التفعيل");
     }
     setActionLoading(null);
   }
@@ -83,11 +85,12 @@ export default function AdminRegistrationsPage() {
         setRegistrations((prev) =>
           prev.map((r) => (r.id === id ? { ...r, status: "rejected" as const, notes: rejectReason } : r))
         );
+        toast("success", "تم رفض الطلب");
       } else {
-        alert(data.error || "فشل الرفض");
+        toast("error", data.error || "فشل الرفض");
       }
     } catch {
-      alert("حدث خطأ");
+      toast("error", "حدث خطأ أثناء الرفض");
     }
     setActionLoading(null);
     setRejectModal(null);

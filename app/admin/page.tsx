@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { ErrorState } from "@/components/ui";
+import {
+  Users, Building2, FolderOpen, MessageCircle, MessageSquare,
+  Phone, BookOpen, Repeat, CreditCard, XCircle, AlertCircle,
+} from "lucide-react";
 
 interface AdminStats {
   users: { total: number };
@@ -26,7 +31,7 @@ function StatCard({
 }: {
   label: string;
   value: number | string;
-  icon: string;
+  icon: React.ReactNode;
   href?: string;
   sub?: string;
 }) {
@@ -38,7 +43,9 @@ function StatCard({
           <p className="mt-1 text-3xl font-bold text-gray-900">{value}</p>
           {sub && <p className="mt-1 text-xs text-gray-400">{sub}</p>}
         </div>
-        <span className="text-3xl">{icon}</span>
+        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-navy/5 text-brand-navy shrink-0">
+          {icon}
+        </div>
       </div>
     </div>
   );
@@ -67,10 +74,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchStats = useCallback(() => {
+    setLoading(true);
+    setError(null);
     fetch("/api/admin/stats")
       .then((r) => {
-        if (!r.ok) throw new Error("Failed to fetch stats");
+        if (!r.ok) throw new Error("فشل تحميل الإحصائيات");
         return r.json();
       })
       .then((data) => {
@@ -79,6 +88,8 @@ export default function AdminDashboard() {
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
   if (loading) {
     return (
@@ -91,11 +102,19 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="text-center">
-          <p className="text-4xl mb-3">⚠️</p>
-          <p className="text-gray-600">{error}</p>
-        </div>
+      <div>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900">لوحة التحكم</h1>
+        <ErrorState
+          description={error}
+          action={
+            <button
+              onClick={fetchStats}
+              className="rounded-lg bg-brand-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-navy-light cursor-pointer"
+            >
+              إعادة المحاولة
+            </button>
+          }
+        />
       </div>
     );
   }
@@ -120,58 +139,58 @@ export default function AdminDashboard() {
         <StatCard
           label="المستخدمين"
           value={stats.users.total}
-          icon="👥"
+          icon={<Users className="w-5 h-5" />}
           href="/admin/users"
           sub={stats.users.total > 0 ? `${stats.users.total} مستخدم` : undefined}
         />
         <StatCard
           label="الشركات"
           value={stats.tenants.total}
-          icon="🏢"
+          icon={<Building2 className="w-5 h-5" />}
           href="/admin/tenants"
         />
         <StatCard
           label="المشاريع"
           value={stats.projects.total}
-          icon="📁"
+          icon={<FolderOpen className="w-5 h-5" />}
           href="/admin/tenants"
         />
         <StatCard
           label="الرسائل"
           value={stats.messages.total.toLocaleString()}
-          icon="💬"
+          icon={<MessageCircle className="w-5 h-5" />}
           sub={`${stats.messages.today.toLocaleString()} اليوم`}
         />
         <StatCard
           label="المحادثات"
           value={stats.conversations.total}
-          icon="🗨️"
+          icon={<MessageSquare className="w-5 h-5" />}
         />
         <StatCard
           label="جهات الاتصال"
           value={stats.contacts.total}
-          icon="📞"
+          icon={<Phone className="w-5 h-5" />}
         />
         <StatCard
           label="قاعدة المعرفة"
           value={stats.knowledge.total}
-          icon="📚"
+          icon={<BookOpen className="w-5 h-5" />}
         />
         <StatCard
           label="طلبات التحويل"
           value={stats.handoffs.total}
-          icon="🔄"
+          icon={<Repeat className="w-5 h-5" />}
         />
         <StatCard
           label="الاشتراكات النشطة"
           value={stats.subscriptions.active}
-          icon="💳"
+          icon={<CreditCard className="w-5 h-5" />}
           href="/admin/subscriptions"
         />
         <StatCard
           label="الوظائف الفاشلة"
           value={stats.failedJobs.total}
-          icon="❌"
+          icon={<XCircle className="w-5 h-5" />}
           sub={stats.failedJobs.total > 0 ? "بحاجة للمراجعة" : "لا توجد"}
         />
       </div>

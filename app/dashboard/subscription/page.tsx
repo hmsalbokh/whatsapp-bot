@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { ErrorState } from "@/components/ui";
 
 interface Plan {
   id: string;
@@ -52,24 +53,56 @@ export default function SubscriptionPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    setError(null);
     Promise.all([
-      fetch("/api/subscriptions").then((r) => r.json()),
-      fetch("/api/plans").then((r) => r.json()),
-      fetch("/api/subscriptions/usage").then((r) => r.json()),
+      fetch("/api/subscriptions").then((r) => {
+        if (!r.ok) throw new Error("فشل تحميل بيانات الاشتراك");
+        return r.json();
+      }),
+      fetch("/api/plans").then((r) => {
+        if (!r.ok) throw new Error("فشل تحميل الخطط");
+        return r.json();
+      }),
+      fetch("/api/subscriptions/usage").then((r) => {
+        if (!r.ok) throw new Error("فشل تحميل الاستخدام");
+        return r.json();
+      }),
     ]).then(([subData, plansData, usageData]) => {
       setSub(subData.subscription ?? null);
       setPlans(plansData.plans ?? []);
       setUsage(usageData);
-    }).catch((err) => console.error("Failed to load subscription data:", err instanceof Error ? err.message : String(err)))
+    }).catch((err) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-navy border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-10">
+        <ErrorState
+          description={error}
+          action={
+            <button
+              onClick={fetchData}
+              className="rounded-lg bg-brand-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-navy-light cursor-pointer"
+            >
+              إعادة المحاولة
+            </button>
+          }
+        />
       </div>
     );
   }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { ErrorState } from "@/components/ui";
 
 interface UserEntry {
   userId: string;
@@ -12,14 +13,23 @@ interface UserEntry {
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
+  const fetchUsers = useCallback(() => {
+    setLoading(true);
+    setError(null);
     fetch("/api/admin/users")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("فشل تحميل المستخدمين");
+        return r.json();
+      })
       .then((data) => setUsers(data.users ?? []))
+      .catch((err) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const filtered = users.filter((u) =>
     u.userId.toLowerCase().includes(search.toLowerCase()) ||
@@ -41,6 +51,25 @@ export default function AdminUsersPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900">المستخدمين</h1>
+        <ErrorState
+          description={error}
+          action={
+            <button
+              onClick={fetchUsers}
+              className="rounded-lg bg-brand-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-navy-light cursor-pointer"
+            >
+              إعادة المحاولة
+            </button>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -53,9 +82,10 @@ export default function AdminUsersPage() {
         <input
           type="text"
           placeholder="بحث..."
+          aria-label="بحث عن مستخدم"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-64 rounded-xl border border-gray-300 px-4 py-2 text-sm outline-none focus:border-blue-500"
+          className="w-64 rounded-xl border border-gray-300 px-4 py-2 text-sm outline-none focus:border-brand-navy focus:ring-1 focus:ring-brand-navy/40"
         />
       </div>
 
@@ -63,10 +93,10 @@ export default function AdminUsersPage() {
         <table className="w-full text-right text-sm">
           <thead>
             <tr className="border-b bg-gray-50">
-              <th className="px-4 py-3 font-medium text-gray-600">المستخدم</th>
-              <th className="px-4 py-3 font-medium text-gray-600">الشركات</th>
-              <th className="px-4 py-3 font-medium text-gray-600">المشاريع</th>
-              <th className="px-4 py-3 font-medium text-gray-600">أول ظهور</th>
+              <th scope="col" className="px-4 py-3 font-medium text-gray-600">المستخدم</th>
+              <th scope="col" className="px-4 py-3 font-medium text-gray-600">الشركات</th>
+              <th scope="col" className="px-4 py-3 font-medium text-gray-600">المشاريع</th>
+              <th scope="col" className="px-4 py-3 font-medium text-gray-600">أول ظهور</th>
             </tr>
           </thead>
           <tbody>

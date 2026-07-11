@@ -77,7 +77,7 @@ export default function AdminLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/40 focus-visible:ring-offset-2 ${
                   isActive
                     ? "bg-brand-navy/5 font-medium text-brand-navy"
                     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
