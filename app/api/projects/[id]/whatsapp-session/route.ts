@@ -25,6 +25,7 @@ export async function GET(
     if (session && access.role !== "admin") {
       const raw = session as unknown as { config: Record<string, unknown> };
       return NextResponse.json({
+        role: access.role,
         session: {
           ...raw,
           config: {
@@ -34,7 +35,7 @@ export async function GET(
       });
     }
 
-    return NextResponse.json({ session: session ?? null });
+    return NextResponse.json({ role: access.role, session: session ?? null });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const status = message.includes("denied") || message.includes("not found") ? 404 : 500;

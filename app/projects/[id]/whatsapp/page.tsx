@@ -43,7 +43,8 @@ export default function WhatsAppPage() {
   const [saved, setSaved] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [error, setError] = useState("");
-  const [isAdmin, setIsAdmin] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [roleLoaded, setRoleLoaded] = useState(false);
 
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("idle");
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -66,11 +67,11 @@ export default function WhatsAppPage() {
       .then(([projectData, sessionData]) => {
         setProjectName(projectData.project?.name ?? "");
         const s = sessionData.session;
+        const userRole = sessionData.role;
+        setIsAdmin(userRole === "admin");
         setSession(s);
         if (s?.config) {
           const cfg = s.config as Record<string, string>;
-          const hasAdminConfig = "apiToken" in cfg && "baseUrl" in cfg;
-          setIsAdmin(hasAdminConfig);
           setForm({
             baseUrl: cfg.baseUrl ?? "",
             apiToken: cfg.apiToken ?? "",
@@ -81,7 +82,7 @@ export default function WhatsAppPage() {
         }
       })
       .catch((err) => console.error("Failed to load WhatsApp page:", err instanceof Error ? err.message : String(err)))
-      .finally(() => setLoading(false));
+      .finally(() => { setLoading(false); setRoleLoaded(true); });
   }, [projectId]);
 
   useEffect(() => {
@@ -126,8 +127,8 @@ export default function WhatsAppPage() {
   }
 
   async function handleCreateSession() {
-    if (!form.baseUrl || !form.apiToken || !form.sessionName) {
-      setError("يرجى تعبئة جميع الحقول");
+    if (!form.sessionName) {
+      setError("يرجى إدخال اسم الجلسة");
       return;
     }
     setError("");
@@ -648,7 +649,7 @@ export default function WhatsAppPage() {
         )}
 
         {/* Webhook info — visible only to admins */}
-        {isAdmin && (
+        {roleLoaded && isAdmin && (
           <div className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               <ExternalLink className="w-5 h-5 text-slate-400" />

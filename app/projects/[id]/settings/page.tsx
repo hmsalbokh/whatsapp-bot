@@ -67,7 +67,7 @@ export default function SettingsPage() {
   const [qrError, setQrError] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [waError, setWaError] = useState("");
-  const [isAdmin, setIsAdmin] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [waForm, setWaForm] = useState({
     baseUrl: "",
@@ -102,11 +102,11 @@ export default function SettingsPage() {
         });
       }
       const s = sessionData.session;
+      const userRole = sessionData.role;
+      setIsAdmin(userRole === "admin");
       setSession(s);
       if (s?.config) {
         const cfg = s.config as Record<string, string>;
-        const hasAdminConfig = "apiToken" in cfg && "baseUrl" in cfg;
-        setIsAdmin(hasAdminConfig);
         setWaForm({
           baseUrl: cfg.baseUrl ?? "",
           apiToken: cfg.apiToken ?? "",
@@ -189,8 +189,8 @@ export default function SettingsPage() {
   }
 
   async function handleCreateSession() {
-    if (!waForm.baseUrl || !waForm.apiToken || !waForm.sessionName) {
-      setWaError("يرجى تعبئة جميع الحقول");
+    if (!waForm.sessionName) {
+      setWaError("يرجى إدخال اسم الجلسة");
       return;
     }
     setWaError("");

@@ -26,7 +26,7 @@ export const definition: ToolDefinition = {
   },
 };
 
-export const handler: ToolHandler = async (args) => {
+export const handler: ToolHandler = async (args, context) => {
   const parsed = paramsSchema.safeParse(args);
   if (!parsed.success) {
     return {
@@ -37,10 +37,16 @@ export const handler: ToolHandler = async (args) => {
 
   const q = parsed.data.query.toLowerCase();
 
-  const { data: results } = await getSupabase()
+  let query = getSupabase()
     .from("knowledge_items")
     .select("question, answer, category, keywords")
     .eq("is_active", true);
+
+  if (context?.projectId) {
+    query = query.eq("project_id", context.projectId);
+  }
+
+  const { data: results } = await query;
 
   const rows = (results ?? []) as unknown as {
     question: string;

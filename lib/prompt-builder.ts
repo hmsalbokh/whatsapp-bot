@@ -59,9 +59,21 @@ export async function buildPrompt(projectId: string): Promise<PromptContext> {
   };
 }
 
+function buildKnowledgeSection(ctx: PromptContext): string[] {
+  if (ctx.knowledgeItems.length === 0) return [];
+  const lines: string[] = [``, `قاعدة المعرفة:`];
+  ctx.knowledgeItems.forEach((item, i) => {
+    lines.push(`${i + 1}. س: ${item.question}`);
+    lines.push(`   ج: ${item.answer}`);
+  });
+  return lines;
+}
+
 export function generateSystemPrompt(ctx: PromptContext): string {
+  const knowledgeLines = buildKnowledgeSection(ctx);
+
   if (ctx.systemPromptOverride) {
-    return ctx.systemPromptOverride;
+    return [ctx.systemPromptOverride, ...knowledgeLines].join("\n");
   }
 
   const lines: string[] = [];
@@ -81,15 +93,8 @@ export function generateSystemPrompt(ctx: PromptContext): string {
   lines.push(`- إذا كانت المشكلة معقدة، استخدم handoff_to_human`);
   lines.push(`- إذا احتاج العميل لتسجيل شكوى، استخدم create_support_ticket`);
   lines.push(`- لا تقدم معلومات خاطئة. إذا لم تعرف الإجابة، اعتذر بلطف واعرض تحويله للدعم البشري`);
-  lines.push(``);
 
-  if (ctx.knowledgeItems.length > 0) {
-    lines.push(`قاعدة المعرفة:`);
-    ctx.knowledgeItems.forEach((item, i) => {
-      lines.push(`${i + 1}. س: ${item.question}`);
-      lines.push(`   ج: ${item.answer}`);
-    });
-  }
+  lines.push(...knowledgeLines);
 
   return lines.join("\n");
 }
